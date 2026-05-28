@@ -23,19 +23,33 @@ const PERIODS: { label: string; days: HistoryPeriod }[] = [
 ]
 
 const SERIES = [
-  { key: "total", label: "Total", color: "#f59e0b", fill: "rgba(245, 158, 11, 0.2)" },
-  { key: "free", label: "Free", color: "#3b82f6", fill: "rgba(59, 130, 246, 0.15)" },
+  {
+    key: "total",
+    label: "Total",
+    color: "#f43f5e",
+    fill: "rgba(244, 63, 94, 0.22)",
+    strokeWidth: 2.5,
+  },
+  {
+    key: "free",
+    label: "Free",
+    color: "#3b82f6",
+    fill: "rgba(59, 130, 246, 0.15)",
+    strokeWidth: 1.5,
+  },
   {
     key: "staked",
-    label: "Staked τ",
+    label: "Root",
     color: "#22c55e",
     fill: "rgba(34, 197, 94, 0.12)",
+    strokeWidth: 1.5,
   },
   {
     key: "alpha",
     label: "Alpha in τ",
     color: "#eab308",
     fill: "rgba(234, 179, 8, 0.12)",
+    strokeWidth: 1.5,
   },
 ] as const
 
@@ -256,21 +270,29 @@ export function BalanceHistoryChart({
                     ]
                   }}
                 />
-                {SERIES.map((s) =>
-                  hidden.has(s.key) ? null : (
-                    <Area
-                      key={s.key}
-                      type="monotone"
-                      dataKey={s.key}
-                      name={s.key}
-                      stroke={s.color}
-                      fill={s.fill}
-                      strokeWidth={2}
-                      dot={false}
-                      activeDot={{ r: 4, strokeWidth: 0 }}
-                    />
-                  ),
-                )}
+                {[...SERIES]
+                  .sort((a, b) =>
+                    a.key === "total" ? 1 : b.key === "total" ? -1 : 0,
+                  )
+                  .map((s) =>
+                    hidden.has(s.key) ? null : (
+                      <Area
+                        key={s.key}
+                        type="monotone"
+                        dataKey={s.key}
+                        name={s.key}
+                        stroke={s.color}
+                        fill={s.fill}
+                        strokeWidth={s.strokeWidth}
+                        dot={false}
+                        activeDot={{
+                          r: s.key === "total" ? 5 : 4,
+                          strokeWidth: 0,
+                          fill: s.color,
+                        }}
+                      />
+                    ),
+                  )}
               </AreaChart>
             </ResponsiveContainer>
           </div>
