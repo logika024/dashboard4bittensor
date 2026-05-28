@@ -53,6 +53,13 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=YOUR_ANON_KEY
 # Used by Prisma — direct Postgres connection string from Supabase
 # (Project Settings -> Database -> Connection string -> URI)
 DATABASE_URL=postgresql://postgres.YOUR_PROJECT_REF:PASSWORD@aws-0-REGION.pooler.supabase.com:6543/postgres
+
+# TAO.app API (server-only — live balances on /portfolio)
+TAOAPP_API_KEY=your_tao_app_api_key
+# TAOAPP_API_BASE_URL=https://api.tao.app
+
+# Taoswap API (server-only — balance history on /portfolio; no key required)
+# TAOSWAP_API_BASE_URL=https://api.taoswap.org
 ```
 
 Find these values in the Supabase dashboard:
@@ -166,8 +173,17 @@ app/
     route.ts                # OAuth code-exchange handler
   dashboard/
     page.tsx                # protected page (middleware-enforced)
+  portfolio/
+    page.tsx                # public coldkey portfolio (TAO.app balances)
+  api/portfolio/balance/
+    route.ts                # TAO.app spot-balance + price-at-block
+  api/portfolio/history/
+    route.ts                # Taoswap /portfolio-balance/ daily history
 
 lib/
+  taoapp/                   # TAO.app API client (server-only)
+  taoswap/                  # Taoswap API client (api.taoswap.org)
+  portfolio/                # portfolio types / storage keys
   supabase/
     server.ts               # server client (RSC / route handlers / actions)
     client.ts               # browser client (auth/session only)
