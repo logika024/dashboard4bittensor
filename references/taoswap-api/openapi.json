@@ -1,0 +1,769 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Taoswap API",
+    "version": "1.0.0",
+    "description": "API documentation",
+    "license": {
+      "name": "BSD License"
+    }
+  },
+  "paths": {
+    "/account-transactions/": {
+      "get": {
+        "operationId": "account_transactions_retrieve",
+        "description": "Returns all past transactions for a given account (coldkey).\nGET /account-transactions/?account=<ss58>&limit=100&offset=0",
+        "tags": [
+          "account-transactions"
+        ],
+        "security": [
+          {}
+        ],
+        "responses": {
+          "200": {
+            "description": "No response body"
+          }
+        }
+      }
+    },
+    "/accounts/": {
+      "get": {
+        "operationId": "accounts_retrieve",
+        "description": "Returns accounts ranked by total balance (free + staked TAO + alpha-in-TAO).\nGET /accounts/?page=1&page_size=50\nGET /accounts/?q=<name or ss58 prefix>",
+        "tags": [
+          "accounts"
+        ],
+        "security": [
+          {}
+        ],
+        "responses": {
+          "200": {
+            "description": "No response body"
+          }
+        }
+      }
+    },
+    "/accounts/wealth-distribution/": {
+      "get": {
+        "operationId": "accounts_wealth_distribution_retrieve",
+        "description": "GET /accounts/wealth-distribution/\n\nTwo wealth-tier distributions computed from the latest\nAccountDailyBalance snapshot, sharing the same thresholds and the\nsame denominator:\n\n- total_tao           → free + staked_tao + staked_alpha_in_tao\n- staked_alpha_in_tao → alpha positions valued in TAO\n\nFor each bucket, `count` is the number of coldkeys whose value is\nat or above the threshold, and `top_percent` is that count divided\nby `total_accounts` — i.e. the top X% you must be in to sit at or\nabove that tier on that dimension.\n\nSingle SQL round trip using PostgreSQL's `COUNT(*) FILTER (WHERE ...)`.\nDjango's F expression arithmetic across three BigInteger columns\nsilently clamps to int32 for some comparisons, so we go raw here.",
+        "tags": [
+          "accounts"
+        ],
+        "security": [
+          {}
+        ],
+        "responses": {
+          "200": {
+            "description": "No response body"
+          }
+        }
+      }
+    },
+    "/auth/authenticate/": {
+      "post": {
+        "operationId": "auth_authenticate_create",
+        "tags": [
+          "auth"
+        ],
+        "security": [
+          {
+            "cookieAuth": []
+          },
+          {
+            "basicAuth": []
+          },
+          {}
+        ],
+        "responses": {
+          "200": {
+            "description": "No response body"
+          }
+        }
+      }
+    },
+    "/auth/epoch/": {
+      "get": {
+        "operationId": "auth_epoch_retrieve",
+        "tags": [
+          "auth"
+        ],
+        "security": [
+          {
+            "cookieAuth": []
+          },
+          {
+            "basicAuth": []
+          },
+          {}
+        ],
+        "responses": {
+          "200": {
+            "description": "No response body"
+          }
+        }
+      }
+    },
+    "/auth/logout/": {
+      "post": {
+        "operationId": "auth_logout_create",
+        "tags": [
+          "auth"
+        ],
+        "security": [
+          {
+            "cookieAuth": []
+          },
+          {
+            "basicAuth": []
+          },
+          {}
+        ],
+        "responses": {
+          "200": {
+            "description": "No response body"
+          }
+        }
+      }
+    },
+    "/blocks/": {
+      "get": {
+        "operationId": "blocks_retrieve",
+        "description": "Optional query params:\n- from_block: filter blocks >= this id\n- to_block: filter blocks <= this id\n- page: page number (default: 1)\n- page_size: results per page (default: 100, max: 1000)",
+        "tags": [
+          "blocks"
+        ],
+        "security": [
+          {}
+        ],
+        "responses": {
+          "200": {
+            "description": "No response body"
+          }
+        }
+      }
+    },
+    "/blocks/{id}/": {
+      "get": {
+        "operationId": "blocks_retrieve_2",
+        "description": "GET /blocks/{id}/ — single-block metadata.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "schema": {
+              "type": "string"
+            },
+            "required": true
+          }
+        ],
+        "tags": [
+          "blocks"
+        ],
+        "security": [
+          {}
+        ],
+        "responses": {
+          "200": {
+            "description": "No response body"
+          }
+        }
+      }
+    },
+    "/blocks/{id}/events/": {
+      "get": {
+        "operationId": "blocks_events_retrieve",
+        "description": "GET /blocks/{id}/events/?page=1&page_size=100&extrinsic_idx=10\n\nPaginated events of a block. Optional `extrinsic_idx` filter restricts to\na specific extrinsic. Returns proper total_count / total_pages so the\nfront-end can render full pagination controls.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "schema": {
+              "type": "string"
+            },
+            "required": true
+          }
+        ],
+        "tags": [
+          "blocks"
+        ],
+        "security": [
+          {}
+        ],
+        "responses": {
+          "200": {
+            "description": "No response body"
+          }
+        }
+      }
+    },
+    "/blocks/{id}/extrinsics/": {
+      "get": {
+        "operationId": "blocks_extrinsics_retrieve",
+        "description": "GET /blocks/{id}/extrinsics/ — all extrinsics of a block, no pagination.\n\nOptional `success=true|false` filter (mirrors /extrinsics/).\n\nEach extrinsic includes events_count and (for Utility batches) sub_calls_count\n+ sub_calls_summary so the front-end can render a block in one round-trip\nwithout fetching all events.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "schema": {
+              "type": "string"
+            },
+            "required": true
+          }
+        ],
+        "tags": [
+          "blocks"
+        ],
+        "security": [
+          {}
+        ],
+        "responses": {
+          "200": {
+            "description": "No response body"
+          }
+        }
+      }
+    },
+    "/events/": {
+      "get": {
+        "operationId": "events_retrieve",
+        "description": "Returns event data with page-based pagination.\nGET /events/?block=7531566\nGET /events/?from_block=7500000&to_block=7531566\nGET /events/?section=SubtensorModule&method=StakeAdded",
+        "tags": [
+          "events"
+        ],
+        "security": [
+          {}
+        ],
+        "responses": {
+          "200": {
+            "description": "No response body"
+          }
+        }
+      }
+    },
+    "/extrinsics/": {
+      "get": {
+        "operationId": "extrinsics_retrieve",
+        "description": "Returns extrinsic data with page-based pagination.\nGET /extrinsics/?page=1&page_size=50\nGET /extrinsics/?signer=5FHne...\nGET /extrinsics/?module=SubtensorModule&call=add_stake\nGET /extrinsics/?category=staking|transfers|other\nGET /extrinsics/?block=5611000\n\nGET /extrinsics/?from_block=5600000&to_block=5611000\nGET /extrinsics/?success=true\nGET /extrinsics/?netuid=1\nGET /extrinsics/?exclude_batches=true   # hide Utility.{batch,batch_all,force_batch}",
+        "tags": [
+          "extrinsics"
+        ],
+        "security": [
+          {}
+        ],
+        "responses": {
+          "200": {
+            "description": "No response body"
+          }
+        }
+      }
+    },
+    "/extrinsics/counts/": {
+      "get": {
+        "operationId": "extrinsics_counts_retrieve",
+        "description": "Return per-category extrinsic counts for an account or subnet.\n\nGET /extrinsics/counts/?account=5Gx...abc\nGET /extrinsics/counts/?netuid=1\nGET /extrinsics/counts/?account=5Gx...abc&success=true   # only successful",
+        "tags": [
+          "extrinsics"
+        ],
+        "security": [
+          {}
+        ],
+        "responses": {
+          "200": {
+            "description": "No response body"
+          }
+        }
+      }
+    },
+    "/features/": {
+      "get": {
+        "operationId": "features_retrieve",
+        "tags": [
+          "features"
+        ],
+        "security": [
+          {}
+        ],
+        "responses": {
+          "200": {
+            "description": "No response body"
+          }
+        }
+      }
+    },
+    "/halving/": {
+      "get": {
+        "operationId": "halving_retrieve",
+        "description": "Returns the latest halving state.",
+        "tags": [
+          "halving"
+        ],
+        "security": [
+          {}
+        ],
+        "responses": {
+          "200": {
+            "description": "No response body"
+          }
+        }
+      }
+    },
+    "/home-stats/": {
+      "get": {
+        "operationId": "home_stats_retrieve",
+        "tags": [
+          "home-stats"
+        ],
+        "security": [
+          {}
+        ],
+        "responses": {
+          "200": {
+            "description": "No response body"
+          }
+        }
+      }
+    },
+    "/identities/": {
+      "get": {
+        "operationId": "identities_retrieve",
+        "description": "List all identities with embedded subnet / validator data when applicable.",
+        "tags": [
+          "identities"
+        ],
+        "security": [
+          {}
+        ],
+        "responses": {
+          "200": {
+            "description": "No response body"
+          }
+        }
+      }
+    },
+    "/idle-stakes/": {
+      "get": {
+        "operationId": "idle_stakes_retrieve",
+        "tags": [
+          "idle-stakes"
+        ],
+        "security": [
+          {}
+        ],
+        "responses": {
+          "200": {
+            "description": "No response body"
+          }
+        }
+      }
+    },
+    "/idle-stakes/lookup/": {
+      "get": {
+        "operationId": "idle_stakes_lookup_retrieve",
+        "tags": [
+          "idle-stakes"
+        ],
+        "security": [
+          {}
+        ],
+        "responses": {
+          "200": {
+            "description": "No response body"
+          }
+        }
+      }
+    },
+    "/metagraph/{id}/": {
+      "get": {
+        "operationId": "metagraph_retrieve",
+        "description": "Metagraph endpoint.\nURL: /metagraph/<subnet_id>/",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "schema": {
+              "type": "string"
+            },
+            "required": true
+          }
+        ],
+        "tags": [
+          "metagraph"
+        ],
+        "security": [
+          {}
+        ],
+        "responses": {
+          "200": {
+            "description": "No response body"
+          }
+        }
+      }
+    },
+    "/notifications/": {
+      "get": {
+        "operationId": "notifications_retrieve",
+        "tags": [
+          "notifications"
+        ],
+        "security": [
+          {}
+        ],
+        "responses": {
+          "200": {
+            "description": "No response body"
+          }
+        }
+      }
+    },
+    "/portfolio-apy-history/": {
+      "get": {
+        "operationId": "portfolio_apy_history_retrieve",
+        "description": "GET /portfolio-apy-history/?account=<ss58>\n    [&date_from=YYYY-MM-DD] [&date_to=YYYY-MM-DD]\n    [&netuid=<int>]",
+        "tags": [
+          "portfolio-apy-history"
+        ],
+        "security": [
+          {}
+        ],
+        "responses": {
+          "200": {
+            "description": "No response body"
+          }
+        }
+      }
+    },
+    "/portfolio-balance/": {
+      "get": {
+        "operationId": "portfolio_balance_retrieve",
+        "description": "Returns daily balance history for a given coldkey account.\n\nGET /portfolio-balance/?account=<ss58>\n                      [&date_from=YYYY-MM-DD]\n                      [&date_to=YYYY-MM-DD]\n                      [&days=365]\n                      [&subnets=1,64,17 | all]\n\nCalendar params (`date_from` / `date_to`) take precedence over `days`.\nBoth bounds are inclusive. Range is capped at 730 days.\n\n`subnets` is opt-in: default response stays lightweight (no per-subnet\nbreakdown). Pass a CSV of netuids or the keyword `all` to attach a\n`subnets` array to each row in `results`. Capped at 256 netuids.",
+        "tags": [
+          "portfolio-balance"
+        ],
+        "security": [
+          {}
+        ],
+        "responses": {
+          "200": {
+            "description": "No response body"
+          }
+        }
+      }
+    },
+    "/portfolio-pnl-apy/": {
+      "get": {
+        "operationId": "portfolio_pnl_apy_retrieve",
+        "description": "GET /portfolio-pnl-apy/?account=<ss58>[&include_subnets=true]\nGET /portfolio-pnl-apy/subnet/?account=<ss58>&netuid=<n>",
+        "tags": [
+          "portfolio-pnl-apy"
+        ],
+        "security": [
+          {}
+        ],
+        "responses": {
+          "200": {
+            "description": "No response body"
+          }
+        }
+      }
+    },
+    "/portfolio-pnl-apy/subnet/": {
+      "get": {
+        "operationId": "portfolio_pnl_apy_subnet_retrieve",
+        "description": "Drill-down for a single (coldkey, subnet) — same shape as one entry\nof `subnets[]` from `list()`, but standalone (lighter when the FE just\nwants one subnet's detail).",
+        "tags": [
+          "portfolio-pnl-apy"
+        ],
+        "security": [
+          {}
+        ],
+        "responses": {
+          "200": {
+            "description": "No response body"
+          }
+        }
+      }
+    },
+    "/price-history/": {
+      "get": {
+        "operationId": "price_history_retrieve",
+        "description": "Optional query params:\n- currency=usd|eur (default: usd)\n- limit=N (default: all)",
+        "tags": [
+          "price-history"
+        ],
+        "security": [
+          {}
+        ],
+        "responses": {
+          "200": {
+            "description": "No response body"
+          }
+        }
+      }
+    },
+    "/search/": {
+      "get": {
+        "operationId": "search_retrieve",
+        "tags": [
+          "search"
+        ],
+        "security": [
+          {}
+        ],
+        "responses": {
+          "200": {
+            "description": "No response body"
+          }
+        }
+      }
+    },
+    "/subnet-price-history/": {
+      "get": {
+        "operationId": "subnet_price_history_retrieve",
+        "description": "Returns OHLCV price history for a specific subnet (TradingView-compatible).\n\nGET /subnet-price-history/?netuid=1&resolution=60\nGET /subnet-price-history/?netuid=1&resolution=D&from=2025-01-01&to=2025-02-01\nGET /subnet-price-history/?netuid=1&resolution=5&limit=288\n\nQuery params:\n    netuid      (required)  Subnet id.\n    resolution  (optional)  One of: 1, 5, 15, 30, 60, 240, D, W. Default: 60.\n    from        (optional)  Start date/datetime (inclusive). ISO 8601 or unix timestamp.\n    to          (optional)  End date/datetime (inclusive). ISO 8601 or unix timestamp.\n    limit       (optional)  Max records to return. Hard cap: 10 000.",
+        "tags": [
+          "subnet-price-history"
+        ],
+        "security": [
+          {}
+        ],
+        "responses": {
+          "200": {
+            "description": "No response body"
+          }
+        }
+      }
+    },
+    "/subnets/": {
+      "get": {
+        "operationId": "subnets_retrieve",
+        "description": "Subnet aggregated API.\nUses DRF serializer but keeps explicit ViewSet control.",
+        "tags": [
+          "subnets"
+        ],
+        "security": [
+          {}
+        ],
+        "responses": {
+          "200": {
+            "description": "No response body"
+          }
+        }
+      }
+    },
+    "/subnets/{id}/": {
+      "get": {
+        "operationId": "subnets_retrieve_2",
+        "description": "Subnet aggregated API.\nUses DRF serializer but keeps explicit ViewSet control.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "schema": {
+              "type": "string",
+              "pattern": "^\\d+$"
+            },
+            "required": true
+          }
+        ],
+        "tags": [
+          "subnets"
+        ],
+        "security": [
+          {}
+        ],
+        "responses": {
+          "200": {
+            "description": "No response body"
+          }
+        }
+      }
+    },
+    "/subnets/{id}/history/": {
+      "get": {
+        "operationId": "subnets_history_retrieve",
+        "description": "GET /subnets/{id}/history/?days=365\nGET /subnets/{id}/history/?days=all\nGET /subnets/{id}/history/?date_from=2025-06-01&date_to=2026-01-01\n\nReturns daily stats history for a subnet (emissions, miners, holders).",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "schema": {
+              "type": "string",
+              "pattern": "^\\d+$"
+            },
+            "required": true
+          }
+        ],
+        "tags": [
+          "subnets"
+        ],
+        "security": [
+          {}
+        ],
+        "responses": {
+          "200": {
+            "description": "No response body"
+          }
+        }
+      }
+    },
+    "/subnets/network-reg-cost/": {
+      "get": {
+        "operationId": "subnets_network_reg_cost_retrieve",
+        "description": "GET /subnets/network-reg-cost/\nGET /subnets/network-reg-cost/?date_from=2024-06-01&date_to=2025-01-01\n\nReturns daily subnet registration cost history for charting.\nDefaults to last 6 months. Use date_from/date_to for custom range.",
+        "tags": [
+          "subnets"
+        ],
+        "security": [
+          {}
+        ],
+        "responses": {
+          "200": {
+            "description": "No response body"
+          }
+        }
+      }
+    },
+    "/testnet-faucet/": {
+      "get": {
+        "operationId": "testnet_faucet_retrieve",
+        "tags": [
+          "testnet-faucet"
+        ],
+        "security": [
+          {
+            "cookieAuth": []
+          },
+          {
+            "basicAuth": []
+          },
+          {}
+        ],
+        "responses": {
+          "200": {
+            "description": "No response body"
+          }
+        }
+      },
+      "post": {
+        "operationId": "testnet_faucet_create",
+        "tags": [
+          "testnet-faucet"
+        ],
+        "security": [
+          {
+            "cookieAuth": []
+          },
+          {
+            "basicAuth": []
+          },
+          {}
+        ],
+        "responses": {
+          "201": {
+            "description": "No response body"
+          }
+        }
+      }
+    },
+    "/trades/": {
+      "get": {
+        "operationId": "trades_retrieve",
+        "description": "Simple buy/sell view of dTAO stake operations, indexed on chain events.\n\nGET /trades/?netuid=64\nGET /trades/?netuid=64&from_date=2026-04-26&to_date=2026-05-02\nGET /trades/?netuid=64&side=buy\nGET /trades/?coldkey=5Foo...\nGET /trades/?hotkey=5Bar...\n\nDefault range: last 7 days. Returns add/remove (clean buy/sell) and swap\n(split into buy/sell legs at the subnet boundary). move/transfer/auto_*\nare excluded — see view module docstring for rationale.",
+        "tags": [
+          "trades"
+        ],
+        "security": [
+          {}
+        ],
+        "responses": {
+          "200": {
+            "description": "No response body"
+          }
+        }
+      }
+    },
+    "/validators/": {
+      "get": {
+        "operationId": "validators_retrieve",
+        "tags": [
+          "validators"
+        ],
+        "security": [
+          {}
+        ],
+        "responses": {
+          "200": {
+            "description": "No response body"
+          }
+        }
+      }
+    },
+    "/validators/{id}/": {
+      "get": {
+        "operationId": "validators_retrieve_2",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "schema": {
+              "type": "string"
+            },
+            "required": true
+          }
+        ],
+        "tags": [
+          "validators"
+        ],
+        "security": [
+          {}
+        ],
+        "responses": {
+          "200": {
+            "description": "No response body"
+          }
+        }
+      }
+    },
+    "/validators/{id}/history/": {
+      "get": {
+        "operationId": "validators_history_retrieve",
+        "description": "GET /validators/{pk}/history/?days=365\nGET /validators/{pk}/history/?days=all\n\nReturns daily stake & delegator count history for a validator.\npk can be a coldkey or hotkey.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "schema": {
+              "type": "string"
+            },
+            "required": true
+          }
+        ],
+        "tags": [
+          "validators"
+        ],
+        "security": [
+          {}
+        ],
+        "responses": {
+          "200": {
+            "description": "No response body"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "basicAuth": {
+        "type": "http",
+        "scheme": "basic"
+      },
+      "cookieAuth": {
+        "type": "apiKey",
+        "in": "cookie",
+        "name": "sessionid"
+      }
+    }
+  }
+}
