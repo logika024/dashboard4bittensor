@@ -119,8 +119,14 @@ export function SubnetTable({ subnets, loadError }: SubnetTableProps) {
     })
   }
 
+  // Keying the body on filter+sort+page forces React to remount its rows
+  // whenever the visible slice changes, which re-runs the row entrance
+  // animation. Favorites toggling is intentionally excluded — same key, no
+  // remount, no flicker.
+  const bodyKey = `${safePage}|${query}|${sortKey}|${sortDir}`
+
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-4 animate-in fade-in-0 duration-300">
       <div className="flex items-center justify-between gap-3">
         <div className="relative w-full max-w-sm">
           <SearchIcon
@@ -135,7 +141,10 @@ export function SubnetTable({ subnets, loadError }: SubnetTableProps) {
             className="h-10 pl-9"
           />
         </div>
-        <p className="text-xs text-muted-foreground">
+        <p
+          key={`count-${rows.length}-${query}`}
+          className="text-xs text-muted-foreground animate-in fade-in-0 duration-300"
+        >
           {rows.length} {rows.length === 1 ? "subnet" : "subnets"}
           {query && ` matching "${query}"`}
         </p>
@@ -144,7 +153,7 @@ export function SubnetTable({ subnets, loadError }: SubnetTableProps) {
       {loadError && (
         <p
           role="alert"
-          className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive"
+          className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive animate-in fade-in-0 slide-in-from-top-1 duration-300"
         >
           {loadError}
         </p>
@@ -194,9 +203,9 @@ export function SubnetTable({ subnets, loadError }: SubnetTableProps) {
               </TableHead>
             </TableRow>
           </TableHeader>
-          <TableBody>
+          <TableBody key={bodyKey}>
             {visibleRows.length === 0 ? (
-              <TableRow className="hover:bg-transparent">
+              <TableRow className="hover:bg-transparent animate-in fade-in-0 duration-300">
                 <TableCell
                   colSpan={10}
                   className="py-10 text-center text-sm text-muted-foreground"
@@ -210,7 +219,15 @@ export function SubnetTable({ subnets, loadError }: SubnetTableProps) {
               visibleRows.map((s, idx) => {
                 const isFav = favorites.has(s.netuid)
                 return (
-                  <TableRow key={s.netuid}>
+                  <TableRow
+                    key={s.netuid}
+                    className="animate-in fade-in-0 slide-in-from-bottom-1"
+                    style={{
+                      animationDuration: "320ms",
+                      animationDelay: `${Math.min(idx * 18, 280)}ms`,
+                      animationFillMode: "both",
+                    }}
+                  >
                     <TableCell className="text-sm tabular-nums text-muted-foreground">
                       {start + idx + 1}
                     </TableCell>
@@ -394,7 +411,7 @@ function SubnetIcon({
         alt={`${name} logo`}
         loading="lazy"
         onError={() => setErrored(true)}
-        className="size-6 shrink-0 rounded-full bg-muted object-cover"
+        className="size-6 shrink-0 rounded-full bg-muted object-cover animate-in fade-in-0 zoom-in-95 duration-300"
       />
     )
   }

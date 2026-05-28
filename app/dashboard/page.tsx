@@ -45,13 +45,13 @@ export default async function DashboardPage() {
 
   return (
     <div className="mx-auto flex w-full max-w-7xl flex-col gap-6 p-6">
-      <header className="flex flex-wrap items-center justify-between gap-4">
+      <header className="flex flex-wrap items-center justify-between gap-4 animate-in fade-in-0 slide-in-from-top-1 duration-500">
         <div>
           <h1 className="font-heading text-2xl font-semibold tracking-tight">
             Subnets
           </h1>
           <p className="text-sm text-muted-foreground">
-            Live screener from TAO.app
+            Live screener from taostats
           </p>
         </div>
 
