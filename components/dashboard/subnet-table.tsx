@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useMemo, useState } from "react"
+import Link from "next/link"
 import {
   ChevronDownIcon,
   ChevronLeftIcon,
@@ -19,6 +20,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
+import { SubnetIcon } from "@/components/dashboard/subnet-icon"
 import type { SubnetScreenerRow } from "@/lib/taostats/subnets"
 import { cn } from "@/lib/utils"
 
@@ -52,11 +54,6 @@ function pctClass(fraction: number): string {
   if (fraction > 0) return "text-emerald-400"
   if (fraction < 0) return "text-red-400"
   return "text-muted-foreground"
-}
-
-/** Golden-angle hue so each netuid gets a distinct, stable circle color. */
-function subnetColor(netuid: number): string {
-  return `hsl(${(netuid * 137.508) % 360} 65% 55%)`
 }
 
 function matchesQuery(s: SubnetScreenerRow, query: string): boolean {
@@ -250,21 +247,24 @@ export function SubnetTable({ subnets, loadError }: SubnetTableProps) {
                       </button>
                     </TableCell>
                     <TableCell>
-                      <div className="flex items-center gap-2.5">
+                      <Link
+                        href={`/subnet/${s.netuid}`}
+                        className="group/subnet -mx-1 flex items-center gap-2.5 rounded px-1 py-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+                      >
                         <SubnetIcon
                           netuid={s.netuid}
                           name={s.name}
                           logoUrl={s.logoUrl}
                         />
                         <div className="flex flex-col leading-tight">
-                          <span className="text-sm font-medium text-foreground">
+                          <span className="text-sm font-medium text-foreground decoration-foreground/50 underline-offset-2 group-hover/subnet:underline">
                             {s.name}
                           </span>
                           <span className="text-xs text-muted-foreground">
                             SN{s.netuid}
                           </span>
                         </div>
-                      </div>
+                      </Link>
                     </TableCell>
                     <TableCell className="text-right text-sm tabular-nums">
                       {formatPct(s.emission_pct)}
@@ -389,38 +389,3 @@ function SortableHead({
   )
 }
 
-function SubnetIcon({
-  netuid,
-  name,
-  logoUrl,
-}: {
-  netuid: number
-  name: string
-  logoUrl: string | null
-}) {
-  const [errored, setErrored] = useState(false)
-
-  if (logoUrl && !errored) {
-    return (
-      // Plain <img> rather than next/image — subnet logos come from arbitrary
-      // owner-supplied hosts we can't pre-whitelist. onError falls back to the
-      // colored circle if the host blocks us or returns a non-image.
-      // eslint-disable-next-line @next/next/no-img-element
-      <img
-        src={logoUrl}
-        alt={`${name} logo`}
-        loading="lazy"
-        onError={() => setErrored(true)}
-        className="size-6 shrink-0 rounded-full bg-muted object-cover animate-in fade-in-0 zoom-in-95 duration-300"
-      />
-    )
-  }
-
-  return (
-    <span
-      aria-hidden
-      className="size-6 shrink-0 rounded-full"
-      style={{ background: subnetColor(netuid) }}
-    />
-  )
-}

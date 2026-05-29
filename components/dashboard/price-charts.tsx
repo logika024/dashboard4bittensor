@@ -8,7 +8,6 @@ import {
   Tooltip,
   XAxis,
   YAxis,
-  type TooltipProps,
 } from "recharts"
 import { Card } from "@/components/ui/card"
 import { Spinner } from "@/components/ui/spinner"
@@ -283,12 +282,19 @@ function PriceCard({
   )
 }
 
-function PriceTooltip({
-  active,
-  payload,
-}: TooltipProps<number, string>) {
+/**
+ * Recharts 3.x removed the `TooltipProps` shape we used to import — declare
+ * our own minimal type for just the fields the tooltip actually reads, so
+ * we're not coupled to Recharts internal type shifts.
+ */
+interface PriceTooltipProps {
+  active?: boolean
+  payload?: ReadonlyArray<{ payload: PricePoint }>
+}
+
+function PriceTooltip({ active, payload }: PriceTooltipProps) {
   if (!active || !payload?.[0]) return null
-  const point = payload[0].payload as PricePoint
+  const point = payload[0].payload
   return (
     <div className="rounded-md border border-border bg-popover px-2.5 py-1.5 text-xs shadow-md">
       <p className="font-medium tabular-nums text-foreground">
