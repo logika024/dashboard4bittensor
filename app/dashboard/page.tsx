@@ -1,9 +1,19 @@
 import { redirect } from "next/navigation"
 import { createClient } from "@/lib/supabase/server"
 import { signOut } from "@/app/login/actions"
-import { Card, CardContent } from "@/components/ui/card"
+import { TaostatsError } from "@/lib/taostats/client"
+import {
+  getSubnetScreener,
+  type SubnetScreenerRow,
+} from "@/lib/taostats/subnets"
+import { SubnetTable } from "@/components/dashboard/subnet-table"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+
+export const metadata = {
+  title: "Subnets · Dashboard",
+  description: "Live Bittensor subnet screener",
+}
 
 export default async function DashboardPage() {
   const supabase = await createClient()
@@ -11,8 +21,19 @@ export default async function DashboardPage() {
     data: { user },
   } = await supabase.auth.getUser()
 
-  // Middleware already enforces this, but keep a server-side guard for safety.
+  // Middleware already enforces this — server-side guard for safety.
   if (!user) redirect("/login")
+
+  let subnets: SubnetScreenerRow[] = []
+  let loadError: string | null = null
+  try {
+    subnets = await getSubnetScreener()
+  } catch (err) {
+    loadError =
+      err instanceof TaostatsError
+        ? err.message
+        : "Failed to load subnets from taostats"
+  }
 
   const displayName =
     (user.user_metadata?.full_name as string | undefined) ??
@@ -23,31 +44,34 @@ export default async function DashboardPage() {
   const initial = displayName.trim().charAt(0).toUpperCase() || "?"
 
   return (
-    <div className="flex flex-1 items-center justify-center px-6 py-12">
-      <Card className="w-full max-w-md gap-6 py-8">
-        <CardContent className="flex flex-col items-center gap-6">
-          <Avatar size="lg" className="size-20">
+    <div className="mx-auto flex w-full max-w-7xl flex-col gap-6 p-6">
+      <header className="flex flex-wrap items-center justify-between gap-4 animate-in fade-in-0 slide-in-from-top-1 duration-500">
+        <div>
+          <h1 className="font-heading text-2xl font-semibold tracking-tight">
+            Subnets
+          </h1>
+          <p className="text-sm text-muted-foreground">
+            Live screener from taostats
+          </p>
+        </div>
+
+        <div className="flex items-center gap-3">
+          <span className="hidden text-sm text-muted-foreground sm:inline">
+            {displayName}
+          </span>
+          <Avatar>
             {avatarUrl && <AvatarImage src={avatarUrl} alt={displayName} />}
-            <AvatarFallback className="text-xl">{initial}</AvatarFallback>
+            <AvatarFallback>{initial}</AvatarFallback>
           </Avatar>
-
-          <div className="flex flex-col items-center gap-2 text-center">
-            <h1 className="font-heading text-3xl font-semibold tracking-tight">
-              hello protected user!
-            </h1>
-            <p className="text-sm text-muted-foreground">
-              Signed in as{" "}
-              <span className="font-medium text-foreground">{displayName}</span>
-            </p>
-          </div>
-
-          <form action={signOut} className="w-full">
-            <Button type="submit" variant="outline" className="h-10 w-full">
+          <form action={signOut}>
+            <Button type="submit" variant="outline" size="sm">
               Sign out
             </Button>
           </form>
-        </CardContent>
-      </Card>
+        </div>
+      </header>
+
+      <SubnetTable subnets={subnets} loadError={loadError} />
     </div>
   )
 }

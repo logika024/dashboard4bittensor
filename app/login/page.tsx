@@ -5,8 +5,8 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
 import { signInWithProvider } from "./actions"
+import { OAuthSubmitButton } from "./oauth-button"
 
 export default async function LoginPage({
   searchParams,
@@ -18,7 +18,7 @@ export default async function LoginPage({
   const signInGitHub = signInWithProvider.bind(null, "github", next)
 
   return (
-    <div className="flex flex-1 items-center justify-center px-6 py-12">
+    <div className="flex flex-1 items-center justify-center px-6 py-12 animate-in fade-in-0 zoom-in-95 duration-500">
       <Card className="w-full max-w-md gap-8 px-2 py-10">
         <CardHeader className="gap-2 text-center">
           <CardTitle className="text-2xl">Welcome back</CardTitle>
@@ -28,25 +28,17 @@ export default async function LoginPage({
         </CardHeader>
         <CardContent className="flex flex-col gap-4">
           <form action={signInGoogle}>
-            <Button
-              type="submit"
-              variant="outline"
-              className="h-12 w-full justify-center gap-3 text-base font-medium [&_svg:not([class*='size-'])]:size-5"
-            >
-              <GoogleIcon />
-              Continue with Google
-            </Button>
+            <OAuthSubmitButton
+              label="Continue with Google"
+              icon={<GoogleIcon />}
+            />
           </form>
 
           <form action={signInGitHub}>
-            <Button
-              type="submit"
-              variant="outline"
-              className="h-12 w-full justify-center gap-3 text-base font-medium [&_svg:not([class*='size-'])]:size-5"
-            >
-              <GitHubIcon />
-              Continue with GitHub
-            </Button>
+            <OAuthSubmitButton
+              label="Continue with GitHub"
+              icon={<GitHubIcon />}
+            />
           </form>
 
           {error && (
