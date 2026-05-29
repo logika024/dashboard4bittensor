@@ -321,6 +321,18 @@ function formatPctSigned(fraction: number): string {
   return `${sign}${(fraction * 100).toFixed(2)}%`
 }
 
+/**
+ * X-axis tick formatter.
+ *
+ * Timezone contract: this runs only client-side (parent is `"use client"`,
+ * Recharts defers tick rendering until ResponsiveContainer has measured DOM
+ * dimensions). With no `timeZone` option set, Intl.DateTimeFormat resolves
+ * to the browser's local zone — exactly what we want.
+ *
+ * The `"en-US"` argument only fixes the *locale* (AM/PM, English month/day
+ * names) so tick labels are consistent across user locales; it does NOT
+ * affect timezone.
+ */
 function formatTick(ms: number, range: PriceRange): string {
   const d = new Date(ms)
   switch (range) {
