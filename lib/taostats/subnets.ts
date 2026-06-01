@@ -126,3 +126,161 @@ export async function getSubnetScreener(): Promise<SubnetScreenerRow[]> {
       }
     })
 }
+
+// ---------------------------------------------------------------------------
+// Subnet detail page: per-netuid hyperparams + metagraph
+// ---------------------------------------------------------------------------
+
+/** Subset of fields we surface in the "Settings & Metrics" grid. */
+export interface SubnetHyperparams {
+  netuid: number
+  // Settings & Metrics (visible in taostats UI)
+  maxNeurons: number
+  activeKeys: number
+  validators: number
+  activeValidators: number
+  activeMiners: number
+  activeDual: number
+  maxValidators: number
+  blocksUntilNextEpoch: number
+  /** Mech-emission split fractions, e.g. ["0", "1"]. */
+  mechEmissionSplit: string[]
+  mechCount: number
+  // Extras worth showing alongside the screenshot's set
+  tempo: number
+  immunityPeriod: number
+  registrationAllowed: boolean
+  weightsVersion: string
+}
+
+interface SubnetHyperparamsRaw {
+  netuid: number
+  max_neurons: number
+  active_keys: number
+  validators: number
+  active_validators: number
+  active_miners: number
+  active_dual: number
+  max_validators: number
+  blocks_until_next_epoch: number
+  mech_emission_split: string[]
+  mech_count: number
+  tempo: number
+  immunity_period: number
+  registration_allowed: boolean
+  weights_version: string
+}
+
+export async function getSubnetHyperparams(
+  netuid: number,
+): Promise<SubnetHyperparams | null> {
+  const res = await taostatsFetch<TaostatsList<SubnetHyperparamsRaw>>(
+    "/api/subnet/latest/v1",
+    { netuid, limit: 1 },
+  )
+  const row = res.data[0]
+  if (!row) return null
+  return {
+    netuid: row.netuid,
+    maxNeurons: row.max_neurons,
+    activeKeys: row.active_keys,
+    validators: row.validators,
+    activeValidators: row.active_validators,
+    activeMiners: row.active_miners,
+    activeDual: row.active_dual,
+    maxValidators: row.max_validators,
+    blocksUntilNextEpoch: row.blocks_until_next_epoch,
+    mechEmissionSplit: row.mech_emission_split,
+    mechCount: row.mech_count,
+    tempo: row.tempo,
+    immunityPeriod: row.immunity_period,
+    registrationAllowed: row.registration_allowed,
+    weightsVersion: row.weights_version,
+  }
+}
+
+/**
+ * Normalized metagraph row. Numeric chain values stay as strings — many are
+ * 18+ digits and would lose precision through JS Number. UI parses with
+ * parseFloat where display precision is enough; rao→TAO at the boundary
+ * uses Number too (safe up to ~9e15 = 9 petarao).
+ */
+export interface MetagraphNeuron {
+  uid: number
+  hotkey: { ss58: string; hex: string }
+  coldkey: { ss58: string; hex: string }
+  active: boolean
+  validatorPermit: boolean
+  /** Alpha stake on this neuron, in rao. */
+  stake: string
+  /** Sum of root + alpha stake (TAO-equivalent), in rao. */
+  totalAlphaStake: string
+  trust: string
+  validatorTrust: string
+  consensus: string
+  incentive: string
+  dividends: string
+  /** Emission this epoch, in rao. */
+  emission: string
+  /** Projected daily reward (TAO-equivalent), in rao. */
+  dailyReward: string
+  rank: number
+  isImmunityPeriod: boolean
+  isChildKey: boolean
+  isOwnerHotkey: boolean
+}
+
+interface MetagraphNeuronRaw {
+  uid: number
+  hotkey: { ss58: string; hex: string }
+  coldkey: { ss58: string; hex: string }
+  active: boolean
+  validator_permit: boolean
+  stake: string
+  total_alpha_stake: string | null
+  trust: string
+  validator_trust: string
+  consensus: string
+  incentive: string
+  dividends: string
+  emission: string
+  daily_reward: string | null
+  rank: number
+  is_immunity_period: boolean
+  is_child_key: boolean
+  is_owner_hotkey: boolean
+}
+
+/**
+ * Full metagraph for a subnet — up to 256 neurons in one call (taostats
+ * `limit` max is 1024). We paginate client-side at 15/page from the cached
+ * 120s result, so flipping pages is instant and free.
+ */
+export async function getSubnetMetagraph(
+  netuid: number,
+): Promise<MetagraphNeuron[]> {
+  const res = await taostatsFetch<TaostatsList<MetagraphNeuronRaw>>(
+    "/api/metagraph/latest/v1",
+    { netuid, limit: 1024, order: "uid_asc" },
+  )
+  return res.data.map((r) => ({
+    uid: r.uid,
+    hotkey: r.hotkey,
+    coldkey: r.coldkey,
+    active: r.active,
+    validatorPermit: r.validator_permit,
+    stake: r.stake,
+    totalAlphaStake: r.total_alpha_stake ?? "0",
+    trust: r.trust,
+    validatorTrust: r.validator_trust,
+    consensus: r.consensus,
+    incentive: r.incentive,
+    dividends: r.dividends,
+    emission: r.emission,
+    dailyReward: r.daily_reward ?? "0",
+    rank: r.rank,
+    isImmunityPeriod: r.is_immunity_period,
+    isChildKey: r.is_child_key,
+    isOwnerHotkey: r.is_owner_hotkey,
+  }))
+}

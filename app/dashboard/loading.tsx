@@ -2,7 +2,7 @@ import { Skeleton } from "@/components/ui/skeleton"
 
 export default function DashboardLoading() {
   return (
-    <div className="mx-auto flex w-full max-w-7xl flex-col gap-6 p-6 animate-in fade-in-0 duration-300">
+    <div className="mx-auto flex w-full max-w-425 flex-col gap-6 p-6 animate-in fade-in-0 duration-300">
       {/* Header */}
       <header className="flex flex-wrap items-center justify-between gap-4">
         <div className="space-y-2">
@@ -16,6 +16,28 @@ export default function DashboardLoading() {
         </div>
       </header>
 
+      {/* Price chart cards */}
+      <div className="grid gap-4 sm:grid-cols-2">
+        {Array.from({ length: 2 }).map((_, i) => (
+          <div
+            key={i}
+            className="rounded-xl border border-border bg-card px-5 py-5"
+          >
+            <div className="flex items-start justify-between gap-3">
+              <div className="space-y-2">
+                <Skeleton className="h-3 w-20" />
+                <Skeleton className="h-7 w-32" />
+              </div>
+              <div className="space-y-2 text-right">
+                <Skeleton className="ml-auto h-3 w-12" />
+                <Skeleton className="ml-auto h-3 w-8" />
+              </div>
+            </div>
+            <Skeleton className="mt-4 h-24 w-full" />
+          </div>
+        ))}
+      </div>
+
       {/* Search + count */}
       <div className="flex items-center justify-between gap-3">
         <Skeleton className="h-10 w-full max-w-sm" />
@@ -25,7 +47,7 @@ export default function DashboardLoading() {
       {/* Table card */}
       <div className="overflow-hidden rounded-xl border border-border bg-card">
         {/* Table header */}
-        <div className="grid grid-cols-[3rem_2rem_1fr_repeat(7,minmax(0,_1fr))] items-center gap-3 border-b bg-muted/40 px-3 py-3">
+        <div className="grid grid-cols-[3rem_2rem_1fr_repeat(7,minmax(0,1fr))] items-center gap-3 border-b bg-muted/40 px-3 py-3">
           <Skeleton className="h-3 w-4" />
           <span />
           <Skeleton className="h-3 w-16" />
@@ -42,7 +64,7 @@ export default function DashboardLoading() {
         {Array.from({ length: 15 }).map((_, i) => (
           <div
             key={i}
-            className="grid grid-cols-[3rem_2rem_1fr_repeat(7,minmax(0,_1fr))] items-center gap-3 border-b px-3 py-3 last:border-0 animate-in fade-in-0 duration-500"
+            className="grid grid-cols-[3rem_2rem_1fr_repeat(7,minmax(0,1fr))] items-center gap-3 border-b px-3 py-3 last:border-0 animate-in fade-in-0 duration-500"
             style={{ animationDelay: `${i * 30}ms` }}
           >
             <Skeleton className="h-3 w-5" />
