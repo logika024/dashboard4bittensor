@@ -25,9 +25,18 @@ export async function taoswapFetch<T>(
     }
   }
 
+  // revalidate=0 → `cache: "no-store"`, used for endpoints with values that
+  // tick every block (e.g. metagraph's `blocks_since_epoch`). Without this,
+  // refreshing the page within the 120s cache window would replay the same
+  // stale snapshot and the live countdown would jump back to its start.
+  const cacheOpts =
+    options?.revalidate === 0
+      ? { cache: "no-store" as const }
+      : { next: { revalidate: options?.revalidate ?? 300 } }
+
   const res = await fetch(url.toString(), {
     headers: { Accept: "application/json" },
-    next: { revalidate: options?.revalidate ?? 300 },
+    ...cacheOpts,
   })
 
   if (!res.ok) {

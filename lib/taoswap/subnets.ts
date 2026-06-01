@@ -68,6 +68,38 @@ interface TaoswapMetagraphResponse {
   neurons: TaoswapNeuronRaw[]
 }
 
+interface TaoswapBlock {
+  id: number
+  timestamp: string
+}
+
+interface TaoswapBlocksResponse {
+  results: Record<string, TaoswapBlock>
+}
+
+/**
+ * Fresh chain block number. Taoswap caches per-subnet `blocks_since_epoch`
+ * server-side for an unknown window (~minutes), so deriving "blocks until
+ * next epoch" from there gives a stuck snapshot. The `/blocks/` endpoint
+ * does update per block — we use it as the canonical "now" reference.
+ */
+async function getCurrentChainBlock(): Promise<number | null> {
+  try {
+    const res = await taoswapFetch<TaoswapBlocksResponse>(
+      "/blocks/",
+      { ordering: "-id", limit: 1 },
+      { revalidate: 0 },
+    )
+    const ids = Object.keys(res.results ?? {})
+      .map((k) => Number.parseInt(k, 10))
+      .filter((n) => Number.isFinite(n))
+    if (ids.length === 0) return null
+    return Math.max(...ids)
+  } catch {
+    return null
+  }
+}
+
 // ---------------------------------------------------------------------------
 // Normalized shapes consumed by the UI. Field names mirror the previous
 // taostats-backed types so call sites stay unchanged after the swap.
@@ -205,11 +237,18 @@ export async function getSubnetDetail(netuid: number): Promise<{
   hyperparams: SubnetHyperparams
   subnet: SubnetScreenerRow
 }> {
-  const res = await taoswapFetch<TaoswapMetagraphResponse>(
-    `/metagraph/${netuid}/`,
-    undefined,
-    { revalidate: 120 },
-  )
+  // Fetch metagraph + fresh chain block in parallel. Taoswap's per-subnet
+  // endpoint returns a snapshot of `blocks_since_epoch` that doesn't update
+  // per block (we measured 0 movement over 30s), so we ignore that field
+  // and derive the live value from the chain block instead.
+  const [res, currentBlock] = await Promise.all([
+    taoswapFetch<TaoswapMetagraphResponse>(
+      `/metagraph/${netuid}/`,
+      undefined,
+      { revalidate: 0 },
+    ),
+    getCurrentChainBlock(),
+  ])
 
   // Compute rank from incentive desc (1 = highest). The chain's own rank field
   // bunches many neurons at 0, so we derive a unique rank here — matches what
@@ -229,6 +268,16 @@ export async function getSubnetDetail(netuid: number): Promise<{
   const validators = active.filter((n) => n.is_validator)
   const miners = active.filter((n) => !n.is_validator)
 
+  const tempo = res.subnet.tempo ?? 360
+  // Bittensor epoch boundary fires when (block + netuid + 1) % tempo == 0,
+  // so blocks remaining = tempo - ((block + netuid + 1) % tempo). When the
+  // fresh-block fetch fails for any reason, fall back to taoswap's (likely
+  // stale) snapshot so the card never breaks.
+  const blocksUntilNextEpoch =
+    currentBlock != null
+      ? tempo - ((currentBlock + res.subnet.id + 1) % tempo)
+      : Math.max(0, tempo - (res.subnet.blocks_since_epoch ?? 0))
+
   const hyperparams: SubnetHyperparams = {
     netuid: res.subnet.id,
     maxNeurons: res.count,
@@ -236,15 +285,12 @@ export async function getSubnetDetail(netuid: number): Promise<{
     validators: validators.length,
     activeValidators: validators.length,
     activeMiners: res.subnet.active_miners ?? miners.length,
-    blocksUntilNextEpoch: Math.max(
-      0,
-      (res.subnet.tempo ?? 360) - (res.subnet.blocks_since_epoch ?? 0),
-    ),
+    blocksUntilNextEpoch,
     mechEmissionSplit: (res.subnet.mechanism_emission_split ?? []).map((v) =>
       String(v / 100),
     ),
     mechCount: res.subnet.mechanism_count ?? 1,
-    tempo: res.subnet.tempo ?? 360,
+    tempo,
   }
 
   const subnet = mapSubnet(res.subnet)

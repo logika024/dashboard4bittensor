@@ -19,7 +19,7 @@ import type { MetagraphNeuron } from "@/lib/taoswap/subnets"
 const COLOR_MINER = "#34d399" // emerald-400
 const COLOR_VALIDATOR = "#f472b6" // pink-400
 const COLOR_OWNER = "#fbbf24" // amber-400
-const COLOR_HIGHLIGHT = "#ef4444" // red-500
+const COLOR_HIGHLIGHT = "#8b5cf6" // violet-500 — distinct from miner/validator/owner
 
 // Chart geometry — must match the <ScatterChart margin> prop and YAxis width.
 const MARGIN_LEFT = 8
@@ -291,8 +291,8 @@ export function IncentiveChart({ neurons }: { neurons: MetagraphNeuron[] }) {
 function VerticalBarDot(props: unknown) {
   const { cx, cy, fill } = props as { cx?: number; cy?: number; fill?: string }
   if (typeof cx !== "number" || typeof cy !== "number") return <g />
-  const w = 4
-  const h = 12
+  const w = 5
+  const h = 15
   return (
     <rect
       x={cx - w / 2}
@@ -300,7 +300,7 @@ function VerticalBarDot(props: unknown) {
       width={w}
       height={h}
       fill={fill}
-      rx={1}
+      rx={2.5}
     />
   )
 }
