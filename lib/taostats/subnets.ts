@@ -211,9 +211,11 @@ export interface MetagraphNeuron {
   coldkey: { ss58: string; hex: string }
   active: boolean
   validatorPermit: boolean
-  /** Alpha stake on this neuron, in rao. */
-  stake: string
-  /** Sum of root + alpha stake (TAO-equivalent), in rao. */
+  /** Subnet-local alpha stake, in rao (α units). */
+  alphaStake: string
+  /** Root subnet TAO stake delegated to this hotkey, in rao (τ units). */
+  rootStake: string
+  /** Sum of alpha + root-stake-as-alpha, in rao (α units). */
   totalAlphaStake: string
   trust: string
   validatorTrust: string
@@ -222,8 +224,10 @@ export interface MetagraphNeuron {
   dividends: string
   /** Emission this epoch, in rao. */
   emission: string
-  /** Projected daily reward (TAO-equivalent), in rao. */
+  /** Daily total reward in alpha (rao). */
   dailyReward: string
+  /** Daily total reward converted to TAO (rao). */
+  dailyTotalRewardsAsTao: string
   rank: number
   isImmunityPeriod: boolean
   isChildKey: boolean
@@ -237,6 +241,8 @@ interface MetagraphNeuronRaw {
   active: boolean
   validator_permit: boolean
   stake: string
+  alpha_stake: string | null
+  root_stake: string | null
   total_alpha_stake: string | null
   trust: string
   validator_trust: string
@@ -245,6 +251,7 @@ interface MetagraphNeuronRaw {
   dividends: string
   emission: string
   daily_reward: string | null
+  daily_total_rewards_as_tao: string | null
   rank: number
   is_immunity_period: boolean
   is_child_key: boolean
@@ -269,7 +276,8 @@ export async function getSubnetMetagraph(
     coldkey: r.coldkey,
     active: r.active,
     validatorPermit: r.validator_permit,
-    stake: r.stake,
+    alphaStake: r.alpha_stake ?? "0",
+    rootStake: r.root_stake ?? "0",
     totalAlphaStake: r.total_alpha_stake ?? "0",
     trust: r.trust,
     validatorTrust: r.validator_trust,
@@ -278,6 +286,7 @@ export async function getSubnetMetagraph(
     dividends: r.dividends,
     emission: r.emission,
     dailyReward: r.daily_reward ?? "0",
+    dailyTotalRewardsAsTao: r.daily_total_rewards_as_tao ?? "0",
     rank: r.rank,
     isImmunityPeriod: r.is_immunity_period,
     isChildKey: r.is_child_key,

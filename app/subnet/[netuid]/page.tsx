@@ -13,6 +13,7 @@ import {
 } from "@/lib/taostats/subnets"
 import { SubnetIcon } from "@/components/dashboard/subnet-icon"
 import { HyperparamsGrid } from "@/components/dashboard/hyperparams-grid"
+import { IncentiveChart } from "@/components/dashboard/incentive-chart"
 import { MetagraphTable } from "@/components/dashboard/metagraph-table"
 import { Card } from "@/components/ui/card"
 import { cn } from "@/lib/utils"
@@ -156,6 +157,8 @@ export default async function SubnetDetailPage({ params }: PageProps) {
           {hyperError}
         </p>
       )}
+
+      {metagraph.length > 0 && <IncentiveChart neurons={metagraph} />}
 
       <MetagraphTable neurons={metagraph} loadError={metaError} />
     </div>

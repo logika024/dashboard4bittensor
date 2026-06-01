@@ -1,16 +1,16 @@
 "use client"
 
-import { useMemo, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import {
-  CheckIcon,
   ChevronDownIcon,
   ChevronLeftIcon,
   ChevronRightIcon,
   ChevronUpIcon,
-  CopyIcon,
+  SearchIcon,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
 import {
   Table,
   TableBody,
@@ -19,45 +19,85 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
+import { CopyableAddress } from "@/components/dashboard/copyable-address"
 import type { MetagraphNeuron } from "@/lib/taostats/subnets"
 import { cn } from "@/lib/utils"
 
 const PAGE_SIZE = 15
 const RAO_PER_TAO = 1_000_000_000
 
-type SortKey = "emission" | "daily_reward"
+type SortKey =
+  | "active"
+  | "stake"
+  | "v_trust"
+  | "trust"
+  | "consensus"
+  | "incentive"
+  | "dividends"
+  | "emission"
+  | "daily_reward"
 type SortDir = "asc" | "desc"
+
+/** Value getter per sortable column — boolean coerced to 0/1, strings parsed as floats. */
+const SORT_VALUE: Record<SortKey, (n: MetagraphNeuron) => number> = {
+  active: (n) => (n.active ? 1 : 0),
+  stake: (n) => Number.parseFloat(n.totalAlphaStake),
+  v_trust: (n) => Number.parseFloat(n.validatorTrust),
+  trust: (n) => Number.parseFloat(n.trust),
+  consensus: (n) => Number.parseFloat(n.consensus),
+  incentive: (n) => Number.parseFloat(n.incentive),
+  dividends: (n) => Number.parseFloat(n.dividends),
+  emission: (n) => Number.parseFloat(n.emission),
+  daily_reward: (n) => Number.parseFloat(n.dailyReward),
+}
 
 interface MetagraphTableProps {
   neurons: MetagraphNeuron[]
   loadError?: string | null
 }
 
+function matchesQuery(n: MetagraphNeuron, q: string): boolean {
+  if (!q) return true
+  const needle = q.toLowerCase().trim()
+  // Numeric input matches UID exactly so `42` finds UID 42 (and not UID 142).
+  if (/^\d+$/.test(needle) && String(n.uid) === needle) return true
+  return (
+    n.hotkey.ss58.toLowerCase().includes(needle) ||
+    n.hotkey.hex.toLowerCase().includes(needle) ||
+    n.coldkey.ss58.toLowerCase().includes(needle) ||
+    n.coldkey.hex.toLowerCase().includes(needle)
+  )
+}
+
 export function MetagraphTable({ neurons, loadError }: MetagraphTableProps) {
   const [page, setPage] = useState(1)
+  const [query, setQuery] = useState("")
   const [sortKey, setSortKey] = useState<SortKey | null>(null)
   const [sortDir, setSortDir] = useState<SortDir>("desc")
 
-  // Sorted view — when no sort key is active, fall through to the API order
-  // (uid asc) so the metagraph reads naturally by neuron position.
-  const sorted = useMemo(() => {
-    if (!sortKey) return neurons
-    const get = (n: MetagraphNeuron) =>
-      Number.parseFloat(sortKey === "emission" ? n.emission : n.dailyReward)
+  const filteredSorted = useMemo(() => {
+    const filtered = neurons.filter((n) => matchesQuery(n, query))
+    if (!sortKey) return filtered
+    const get = SORT_VALUE[sortKey]
     const sign = sortDir === "desc" ? -1 : 1
-    return [...neurons].sort((a, b) => sign * (get(a) - get(b)))
-  }, [neurons, sortKey, sortDir])
+    return filtered.sort((a, b) => sign * (get(a) - get(b)))
+  }, [neurons, query, sortKey, sortDir])
 
-  const totalPages = Math.max(1, Math.ceil(sorted.length / PAGE_SIZE))
+  // Reset to page 1 on any visible-set change.
+  useEffect(() => {
+    setPage(1)
+  }, [query, sortKey, sortDir])
+
+  const totalPages = Math.max(1, Math.ceil(filteredSorted.length / PAGE_SIZE))
   const safePage = Math.min(page, totalPages)
   const start = (safePage - 1) * PAGE_SIZE
   const end = start + PAGE_SIZE
   const visible = useMemo(
-    () => sorted.slice(start, end),
-    [sorted, start, end],
+    () => filteredSorted.slice(start, end),
+    [filteredSorted, start, end],
   )
-  // Re-key on sort/page change so the row entrance animation replays.
-  const bodyKey = `meta-${safePage}-${sortKey ?? "uid"}-${sortDir}-${sorted.length}`
+  // Re-key on sort/page/filter change so the row entrance animation replays.
+  const bodyKey = `meta-${safePage}-${sortKey ?? "uid"}-${sortDir}-${filteredSorted.length}-${query}`
 
   function toggleSort(key: SortKey) {
     if (sortKey === key) {
@@ -66,18 +106,34 @@ export function MetagraphTable({ neurons, loadError }: MetagraphTableProps) {
       setSortKey(key)
       setSortDir("desc")
     }
-    setPage(1)
   }
 
   return (
     <Card className="gap-4 px-5 py-5">
-      <div className="flex items-center justify-between gap-3">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <h2 className="text-sm font-semibold tracking-wide text-foreground/90 uppercase">
           Metagraph
         </h2>
-        <p className="text-xs tabular-nums text-muted-foreground">
-          {neurons.length} {neurons.length === 1 ? "neuron" : "neurons"}
-        </p>
+        <div className="flex items-center gap-3">
+          <div className="relative w-full max-w-xs">
+            <SearchIcon
+              aria-hidden
+              className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground"
+            />
+            <Input
+              type="search"
+              placeholder="Search hotkey, coldkey, or UID…"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              className="h-9 pl-9"
+            />
+          </div>
+          <p className="hidden text-xs tabular-nums text-muted-foreground sm:block">
+            {filteredSorted.length}
+            {query && ` / ${neurons.length}`}{" "}
+            {filteredSorted.length === 1 ? "neuron" : "neurons"}
+          </p>
+        </div>
       </div>
 
       {loadError && (
@@ -102,27 +158,49 @@ export function MetagraphTable({ neurons, loadError }: MetagraphTableProps) {
               <TableHead className="px-3 text-xs font-medium text-muted-foreground">
                 Coldkey
               </TableHead>
-              <TableHead className="px-3 text-center text-xs font-medium text-muted-foreground">
-                Active
-              </TableHead>
-              <TableHead className="px-3 text-right text-xs font-medium text-muted-foreground">
-                Stake α
-              </TableHead>
-              <TableHead className="px-3 text-right text-xs font-medium text-muted-foreground">
-                V-Trust
-              </TableHead>
-              <TableHead className="px-3 text-right text-xs font-medium text-muted-foreground">
-                Trust
-              </TableHead>
-              <TableHead className="px-3 text-right text-xs font-medium text-muted-foreground">
-                Consensus
-              </TableHead>
-              <TableHead className="px-3 text-right text-xs font-medium text-muted-foreground">
-                Incentive
-              </TableHead>
-              <TableHead className="px-3 text-right text-xs font-medium text-muted-foreground">
-                Dividends
-              </TableHead>
+              <SortableHead
+                label="Active"
+                align="center"
+                active={sortKey === "active"}
+                direction={sortDir}
+                onClick={() => toggleSort("active")}
+              />
+              <SortableHead
+                label="Stake α"
+                active={sortKey === "stake"}
+                direction={sortDir}
+                onClick={() => toggleSort("stake")}
+              />
+              <SortableHead
+                label="V-Trust"
+                active={sortKey === "v_trust"}
+                direction={sortDir}
+                onClick={() => toggleSort("v_trust")}
+              />
+              <SortableHead
+                label="Trust"
+                active={sortKey === "trust"}
+                direction={sortDir}
+                onClick={() => toggleSort("trust")}
+              />
+              <SortableHead
+                label="Consensus"
+                active={sortKey === "consensus"}
+                direction={sortDir}
+                onClick={() => toggleSort("consensus")}
+              />
+              <SortableHead
+                label="Incentive"
+                active={sortKey === "incentive"}
+                direction={sortDir}
+                onClick={() => toggleSort("incentive")}
+              />
+              <SortableHead
+                label="Dividends"
+                active={sortKey === "dividends"}
+                direction={sortDir}
+                onClick={() => toggleSort("dividends")}
+              />
               <SortableHead
                 label="Emission α"
                 active={sortKey === "emission"}
@@ -144,7 +222,9 @@ export function MetagraphTable({ neurons, loadError }: MetagraphTableProps) {
                   colSpan={12}
                   className="py-10 text-center text-sm text-muted-foreground"
                 >
-                  No neurons to display
+                  {query
+                    ? `No neurons match "${query}"`
+                    : "No neurons to display"}
                 </TableCell>
               </TableRow>
             ) : (
@@ -227,11 +307,11 @@ export function MetagraphTable({ neurons, loadError }: MetagraphTableProps) {
         </Table>
       </div>
 
-      {neurons.length > PAGE_SIZE && (
+      {filteredSorted.length > PAGE_SIZE && (
         <div className="flex flex-wrap items-center justify-between gap-3 text-sm">
           <p className="tabular-nums text-muted-foreground">
-            Showing {start + 1}–{Math.min(end, neurons.length)} of{" "}
-            {neurons.length}
+            Showing {start + 1}–{Math.min(end, filteredSorted.length)} of{" "}
+            {filteredSorted.length}
           </p>
           <div className="flex items-center gap-2">
             <Button
@@ -271,14 +351,29 @@ function SortableHead({
   active,
   direction,
   onClick,
+  align = "right",
 }: {
   label: string
   active: boolean
   direction: SortDir
   onClick: () => void
+  align?: "left" | "center" | "right"
 }) {
+  const cellAlign =
+    align === "center"
+      ? "text-center"
+      : align === "left"
+        ? "text-left"
+        : "text-right"
+  const buttonMargin =
+    align === "center" ? "mx-auto" : align === "left" ? "mr-auto" : "ml-auto"
   return (
-    <TableHead className="px-3 text-right text-xs font-medium text-muted-foreground">
+    <TableHead
+      className={cn(
+        "px-3 text-xs font-medium text-muted-foreground",
+        cellAlign,
+      )}
+    >
       <button
         type="button"
         onClick={onClick}
@@ -286,7 +381,8 @@ function SortableHead({
           active ? (direction === "asc" ? "ascending" : "descending") : "none"
         }
         className={cn(
-          "ml-auto inline-flex cursor-pointer items-center gap-1 rounded transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50",
+          "inline-flex cursor-pointer items-center gap-1 rounded transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50",
+          buttonMargin,
           active && "text-foreground",
         )}
       >
@@ -300,51 +396,6 @@ function SortableHead({
       </button>
     </TableHead>
   )
-}
-
-/**
- * Click-to-copy address pill — truncated display, copy icon on hover,
- * brief check-mark feedback after the clipboard write resolves.
- */
-function CopyableAddress({ address }: { address: string }) {
-  const [copied, setCopied] = useState(false)
-
-  function handleCopy() {
-    if (typeof navigator === "undefined" || !navigator.clipboard) return
-    navigator.clipboard
-      .writeText(address)
-      .then(() => {
-        setCopied(true)
-        window.setTimeout(() => setCopied(false), 1500)
-      })
-      .catch(() => {
-        // Browsers can reject clipboard writes in non-secure or unfocused
-        // contexts. Silently no-op — the title attr still shows the address.
-      })
-  }
-
-  return (
-    <button
-      type="button"
-      onClick={handleCopy}
-      title={copied ? "Copied!" : `Copy address: ${address}`}
-      aria-label={copied ? "Address copied" : `Copy address ${address}`}
-      className="group/copy -mx-1 inline-flex cursor-pointer items-center gap-1.5 rounded px-1 py-0.5 font-mono transition-colors hover:bg-muted/60 focus-visible:bg-muted/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
-    >
-      <span>{truncateAddress(address)}</span>
-      {copied ? (
-        <CheckIcon className="size-3 text-emerald-400" />
-      ) : (
-        <CopyIcon className="size-3 text-muted-foreground opacity-0 transition-opacity group-hover/copy:opacity-100 group-focus-visible/copy:opacity-100" />
-      )}
-    </button>
-  )
-}
-
-/** "5DFwFpurRF...QbWdsnJp" — first 10 + last 8 of ss58, separated by ellipsis. */
-function truncateAddress(addr: string): string {
-  if (addr.length <= 20) return addr
-  return `${addr.slice(0, 10)}…${addr.slice(-8)}`
 }
 
 function formatFraction(raw: string): string {
