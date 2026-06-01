@@ -21,7 +21,7 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { SubnetIcon } from "@/components/dashboard/subnet-icon"
-import type { SubnetScreenerRow } from "@/lib/taostats/subnets"
+import type { SubnetScreenerRow } from "@/lib/taoswap/subnets"
 import { cn } from "@/lib/utils"
 
 const PAGE_SIZE = 15

@@ -2,7 +2,7 @@ import { notFound, redirect } from "next/navigation"
 import Link from "next/link"
 import { ArrowLeftIcon } from "lucide-react"
 import { createClient } from "@/lib/supabase/server"
-import { TaostatsError } from "@/lib/taostats/client"
+import { TaoswapError } from "@/lib/taoswap/client"
 import {
   getSubnetHyperparams,
   getSubnetMetagraph,
@@ -10,7 +10,7 @@ import {
   type MetagraphNeuron,
   type SubnetHyperparams,
   type SubnetScreenerRow,
-} from "@/lib/taostats/subnets"
+} from "@/lib/taoswap/subnets"
 import { SubnetIcon } from "@/components/dashboard/subnet-icon"
 import { HyperparamsGrid } from "@/components/dashboard/hyperparams-grid"
 import { IncentiveChart } from "@/components/dashboard/incentive-chart"
@@ -59,7 +59,7 @@ export default async function SubnetDetailPage({ params }: PageProps) {
     subnet = screenerR.value.find((s) => s.netuid === netuid) ?? null
   } else {
     loadError =
-      screenerR.reason instanceof TaostatsError
+      screenerR.reason instanceof TaoswapError
         ? screenerR.reason.message
         : "Failed to load subnet data"
   }
@@ -70,7 +70,7 @@ export default async function SubnetDetailPage({ params }: PageProps) {
     hyperparams = hyperR.value
   } else {
     hyperError =
-      hyperR.reason instanceof TaostatsError
+      hyperR.reason instanceof TaoswapError
         ? hyperR.reason.message
         : "Failed to load hyperparameters"
   }
@@ -81,7 +81,7 @@ export default async function SubnetDetailPage({ params }: PageProps) {
     metagraph = metaR.value
   } else {
     metaError =
-      metaR.reason instanceof TaostatsError
+      metaR.reason instanceof TaoswapError
         ? metaR.reason.message
         : "Failed to load metagraph"
   }

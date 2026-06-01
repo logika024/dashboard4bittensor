@@ -14,6 +14,7 @@ export class TaoswapError extends Error {
 export async function taoswapFetch<T>(
   path: string,
   searchParams?: Record<string, string | number | undefined>,
+  options?: { revalidate?: number },
 ): Promise<T> {
   const url = new URL(path, `${getTaoswapBaseUrl()}/`)
   if (searchParams) {
@@ -26,7 +27,7 @@ export async function taoswapFetch<T>(
 
   const res = await fetch(url.toString(), {
     headers: { Accept: "application/json" },
-    next: { revalidate: 300 },
+    next: { revalidate: options?.revalidate ?? 300 },
   })
 
   if (!res.ok) {

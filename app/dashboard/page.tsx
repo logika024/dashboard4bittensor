@@ -1,11 +1,11 @@
 import { redirect } from "next/navigation"
 import { createClient } from "@/lib/supabase/server"
 import { signOut } from "@/app/login/actions"
-import { TaostatsError } from "@/lib/taostats/client"
+import { TaoswapError } from "@/lib/taoswap/client"
 import {
   getSubnetScreener,
   type SubnetScreenerRow,
-} from "@/lib/taostats/subnets"
+} from "@/lib/taoswap/subnets"
 import {
   CoinGeckoError,
   getPriceSummary,
@@ -44,9 +44,9 @@ export default async function DashboardPage() {
     subnets = screenerR.value
   } else {
     loadError =
-      screenerR.reason instanceof TaostatsError
+      screenerR.reason instanceof TaoswapError
         ? screenerR.reason.message
-        : "Failed to load subnets from taostats"
+        : "Failed to load subnets from taoswap"
   }
 
   let tao: PriceSummary | null = null
@@ -87,7 +87,7 @@ export default async function DashboardPage() {
             Subnets
           </h1>
           <p className="text-sm text-muted-foreground">
-            Live screener from taostats
+            Live screener from taoswap
           </p>
         </div>
 

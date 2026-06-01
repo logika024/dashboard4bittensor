@@ -14,9 +14,7 @@ import {
 import { Card } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { CopyableAddress } from "@/components/dashboard/copyable-address"
-import type { MetagraphNeuron } from "@/lib/taostats/subnets"
-
-const RAO_PER_TAO = 1_000_000_000
+import type { MetagraphNeuron } from "@/lib/taoswap/subnets"
 
 const COLOR_MINER = "#34d399" // emerald-400
 const COLOR_VALIDATOR = "#f472b6" // pink-400
@@ -50,23 +48,19 @@ export function IncentiveChart({ neurons }: { neurons: MetagraphNeuron[] }) {
   // rank so the dataset reads left→right as high-rank → rank 1.
   const data: IncentiveDatum[] = useMemo(() => {
     const withMetrics = neurons.map((n) => {
-      const totalAlphaStake =
-        Number.parseFloat(n.totalAlphaStake) / RAO_PER_TAO
-      const dailyRewardAlpha = Number.parseFloat(n.dailyReward) / RAO_PER_TAO
-      const dailyRewardTao =
-        Number.parseFloat(n.dailyTotalRewardsAsTao) / RAO_PER_TAO
+      // Numeric fields from taoswap are already in TAO units (no rao scaling).
       const performance =
-        totalAlphaStake > 0 ? dailyRewardAlpha / totalAlphaStake : 0
+        n.totalAlphaStake > 0 ? n.dailyReward / n.totalAlphaStake : 0
       return {
         uid: n.uid,
-        incentive: Number.parseFloat(n.incentive),
-        hotkey: n.hotkey.ss58,
-        coldkey: n.coldkey.ss58,
-        alphaStake: Number.parseFloat(n.alphaStake) / RAO_PER_TAO,
-        rootStake: Number.parseFloat(n.rootStake) / RAO_PER_TAO,
-        totalAlphaStake,
-        dailyRewardAlpha,
-        dailyRewardTao,
+        incentive: n.incentive,
+        hotkey: n.hotkey,
+        coldkey: n.coldkey,
+        alphaStake: n.alphaStake,
+        rootStake: n.rootStake,
+        totalAlphaStake: n.totalAlphaStake,
+        dailyRewardAlpha: n.dailyReward,
+        dailyRewardTao: n.dailyTotalRewardsAsTao,
         performance,
         isOwner: n.isOwnerHotkey,
         validator: n.validatorPermit,

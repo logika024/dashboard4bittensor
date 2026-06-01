@@ -20,11 +20,10 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { CopyableAddress } from "@/components/dashboard/copyable-address"
-import type { MetagraphNeuron } from "@/lib/taostats/subnets"
+import type { MetagraphNeuron } from "@/lib/taoswap/subnets"
 import { cn } from "@/lib/utils"
 
 const PAGE_SIZE = 15
-const RAO_PER_TAO = 1_000_000_000
 
 type SortKey =
   | "active"
@@ -38,17 +37,17 @@ type SortKey =
   | "daily_reward"
 type SortDir = "asc" | "desc"
 
-/** Value getter per sortable column — boolean coerced to 0/1, strings parsed as floats. */
+/** Value getter per sortable column. Boolean Active is coerced to 0/1. */
 const SORT_VALUE: Record<SortKey, (n: MetagraphNeuron) => number> = {
   active: (n) => (n.active ? 1 : 0),
-  stake: (n) => Number.parseFloat(n.totalAlphaStake),
-  v_trust: (n) => Number.parseFloat(n.validatorTrust),
-  trust: (n) => Number.parseFloat(n.trust),
-  consensus: (n) => Number.parseFloat(n.consensus),
-  incentive: (n) => Number.parseFloat(n.incentive),
-  dividends: (n) => Number.parseFloat(n.dividends),
-  emission: (n) => Number.parseFloat(n.emission),
-  daily_reward: (n) => Number.parseFloat(n.dailyReward),
+  stake: (n) => n.totalAlphaStake,
+  v_trust: (n) => n.validatorTrust,
+  trust: (n) => n.trust,
+  consensus: (n) => n.consensus,
+  incentive: (n) => n.incentive,
+  dividends: (n) => n.dividends,
+  emission: (n) => n.emission,
+  daily_reward: (n) => n.dailyReward,
 }
 
 interface MetagraphTableProps {
@@ -62,10 +61,8 @@ function matchesQuery(n: MetagraphNeuron, q: string): boolean {
   // Numeric input matches UID exactly so `42` finds UID 42 (and not UID 142).
   if (/^\d+$/.test(needle) && String(n.uid) === needle) return true
   return (
-    n.hotkey.ss58.toLowerCase().includes(needle) ||
-    n.hotkey.hex.toLowerCase().includes(needle) ||
-    n.coldkey.ss58.toLowerCase().includes(needle) ||
-    n.coldkey.hex.toLowerCase().includes(needle)
+    n.hotkey.toLowerCase().includes(needle) ||
+    n.coldkey.toLowerCase().includes(needle)
   )
 }
 
@@ -262,10 +259,10 @@ export function MetagraphTable({ neurons, loadError }: MetagraphTableProps) {
                     </div>
                   </TableCell>
                   <TableCell className="px-3 text-xs">
-                    <CopyableAddress address={n.hotkey.ss58} />
+                    <CopyableAddress address={n.hotkey} />
                   </TableCell>
                   <TableCell className="px-3 text-xs">
-                    <CopyableAddress address={n.coldkey.ss58} />
+                    <CopyableAddress address={n.coldkey} />
                   </TableCell>
                   <TableCell className="px-3 text-center text-sm">
                     <span
@@ -277,7 +274,7 @@ export function MetagraphTable({ neurons, loadError }: MetagraphTableProps) {
                     </span>
                   </TableCell>
                   <TableCell className="px-3 text-right text-sm tabular-nums">
-                    {formatRao(n.totalAlphaStake)}
+                    {formatTao(n.totalAlphaStake)}
                   </TableCell>
                   <TableCell className="px-3 text-right text-sm tabular-nums">
                     {formatFraction(n.validatorTrust)}
@@ -295,10 +292,10 @@ export function MetagraphTable({ neurons, loadError }: MetagraphTableProps) {
                     {formatFraction(n.dividends)}
                   </TableCell>
                   <TableCell className="px-3 text-right text-sm tabular-nums">
-                    {formatRao(n.emission)}
+                    {formatTao(n.emission)}
                   </TableCell>
                   <TableCell className="px-3 text-right text-sm tabular-nums">
-                    {formatRao(n.dailyReward)}
+                    {formatTao(n.dailyReward)}
                   </TableCell>
                 </TableRow>
               ))
@@ -398,21 +395,18 @@ function SortableHead({
   )
 }
 
-function formatFraction(raw: string): string {
-  const n = Number.parseFloat(raw)
-  if (!Number.isFinite(n)) return "—"
-  return n.toFixed(4)
+function formatFraction(value: number): string {
+  if (!Number.isFinite(value)) return "—"
+  return value.toFixed(4)
 }
 
-/** Format a rao-scale string as TAO with adaptive precision + K/M/B suffix. */
-function formatRao(raw: string): string {
-  const n = Number.parseFloat(raw)
-  if (!Number.isFinite(n) || n === 0) return "0"
-  const tao = n / RAO_PER_TAO
-  const abs = Math.abs(tao)
-  if (abs >= 1_000_000) return `${(tao / 1_000_000).toFixed(2)}M`
-  if (abs >= 1_000) return `${(tao / 1_000).toFixed(2)}K`
-  if (abs >= 1) return tao.toFixed(2)
-  if (abs >= 0.0001) return tao.toFixed(4)
-  return tao.toExponential(2)
+/** Format a TAO-denominated number with adaptive precision + K/M/B suffix. */
+function formatTao(value: number): string {
+  if (!Number.isFinite(value) || value === 0) return "0"
+  const abs = Math.abs(value)
+  if (abs >= 1_000_000) return `${(value / 1_000_000).toFixed(2)}M`
+  if (abs >= 1_000) return `${(value / 1_000).toFixed(2)}K`
+  if (abs >= 1) return value.toFixed(2)
+  if (abs >= 0.0001) return value.toFixed(4)
+  return value.toExponential(2)
 }
