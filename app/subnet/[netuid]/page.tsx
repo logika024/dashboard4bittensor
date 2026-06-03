@@ -11,6 +11,7 @@ import {
   type SubnetHyperparams,
   type SubnetScreenerRow,
 } from "@/lib/taoswap/subnets"
+import { getMyNicknameMap } from "@/lib/portfolio/nicknames"
 import { SubnetIcon } from "@/components/dashboard/subnet-icon"
 import { HyperparamsGrid } from "@/components/dashboard/hyperparams-grid"
 import { IncentiveChart } from "@/components/dashboard/incentive-chart"
@@ -45,13 +46,16 @@ export default async function SubnetDetailPage({ params }: PageProps) {
   if (!user) redirect("/login")
 
   // Fan out: screener (cached), hyperparams (single-netuid call), metagraph
-  // (one call up to 1024 neurons). Promise.allSettled so one upstream blip
-  // doesn't sink the whole page.
-  const [screenerR, hyperR, metaR] = await Promise.allSettled([
+  // (one call up to 1024 neurons), and user's coldkey nicknames (DB-side).
+  // Promise.allSettled so one upstream blip doesn't sink the whole page.
+  const [screenerR, hyperR, metaR, nicknamesR] = await Promise.allSettled([
     getSubnetScreener(),
     getSubnetHyperparams(netuid),
     getSubnetMetagraph(netuid),
+    getMyNicknameMap(),
   ])
+  const nicknames =
+    nicknamesR.status === "fulfilled" ? nicknamesR.value : {}
 
   let subnet: SubnetScreenerRow | null = null
   let loadError: string | null = null
@@ -158,7 +162,9 @@ export default async function SubnetDetailPage({ params }: PageProps) {
         </p>
       )}
 
-      {metagraph.length > 0 && <IncentiveChart neurons={metagraph} />}
+      {metagraph.length > 0 && (
+        <IncentiveChart neurons={metagraph} nicknames={nicknames} />
+      )}
 
       <MetagraphTable neurons={metagraph} loadError={metaError} />
     </div>
