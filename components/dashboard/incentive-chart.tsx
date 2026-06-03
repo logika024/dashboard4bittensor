@@ -17,9 +17,7 @@ import { CopyableAddress } from "@/components/dashboard/copyable-address"
 import type { MetagraphNeuron } from "@/lib/taoswap/subnets"
 
 const COLOR_MINER = "#34d399" // emerald-400
-const COLOR_VALIDATOR = "#f472b6" // pink-400
-const COLOR_OWNER = "#fbbf24" // amber-400
-const COLOR_HIGHLIGHT = "#8b5cf6" // violet-500 — distinct from miner/validator/owner
+const COLOR_HIGHLIGHT = "#8b5cf6" // violet-500 — distinct from miner color
 
 // Chart geometry — must match the <ScatterChart margin> prop and YAxis width.
 const MARGIN_LEFT = 8
@@ -55,30 +53,32 @@ export function IncentiveChart({
   neurons,
   nicknames = {},
 }: IncentiveChartProps) {
-  // Assign unique rank 1..N by incentive descending, then sort ascending by
-  // rank so the dataset reads left→right as high-rank → rank 1.
+  // Miners only — owner + validator entries are excluded from the chart
+  // entirely. Rank 1..N is assigned among miners by incentive descending.
   const data: IncentiveDatum[] = useMemo(() => {
-    const withMetrics = neurons.map((n) => {
-      // Numeric fields from taoswap are already in TAO units (no rao scaling).
-      const performance =
-        n.totalAlphaStake > 0 ? n.dailyReward / n.totalAlphaStake : 0
-      return {
-        uid: n.uid,
-        incentive: n.incentive,
-        hotkey: n.hotkey,
-        coldkey: n.coldkey,
-        coldkeyNickname: nicknames[n.coldkey] ?? null,
-        alphaStake: n.alphaStake,
-        rootStake: n.rootStake,
-        totalAlphaStake: n.totalAlphaStake,
-        dailyRewardAlpha: n.dailyReward,
-        dailyRewardTao: n.dailyTotalRewardsAsTao,
-        performance,
-        isOwner: n.isOwnerHotkey,
-        validator: n.validatorPermit,
-        active: n.active,
-      }
-    })
+    const withMetrics = neurons
+      .filter((n) => !n.isOwnerHotkey && !n.validatorPermit)
+      .map((n) => {
+        // Numeric fields from taoswap are already in TAO units (no rao scaling).
+        const performance =
+          n.totalAlphaStake > 0 ? n.dailyReward / n.totalAlphaStake : 0
+        return {
+          uid: n.uid,
+          incentive: n.incentive,
+          hotkey: n.hotkey,
+          coldkey: n.coldkey,
+          coldkeyNickname: nicknames[n.coldkey] ?? null,
+          alphaStake: n.alphaStake,
+          rootStake: n.rootStake,
+          totalAlphaStake: n.totalAlphaStake,
+          dailyRewardAlpha: n.dailyReward,
+          dailyRewardTao: n.dailyTotalRewardsAsTao,
+          performance,
+          isOwner: n.isOwnerHotkey,
+          validator: n.validatorPermit,
+          active: n.active,
+        }
+      })
     const ranked = [...withMetrics]
       .sort((a, b) => b.incentive - a.incentive)
       .map((d, i) => ({ ...d, rank: i + 1 }))
@@ -87,28 +87,21 @@ export function IncentiveChart({
 
   const [highlightColdkey, setHighlightColdkey] = useState("")
 
-  // Split into role groups; if a coldkey filter is active, any neuron whose
-  // coldkey contains the filter substring goes into `highlighted` instead of
-  // its role bucket. The highlighted group renders last (on top) and red.
+  // If a coldkey filter is active, miners whose coldkey contains the filter
+  // substring move into `highlighted` (rendered last so they sit on top).
   const groups = useMemo(() => {
     const miners: IncentiveDatum[] = []
-    const validators: IncentiveDatum[] = []
-    const owner: IncentiveDatum[] = []
     const highlighted: IncentiveDatum[] = []
 
     const needle = highlightColdkey.trim().toLowerCase()
     for (const d of data) {
       if (needle && d.coldkey.toLowerCase().includes(needle)) {
         highlighted.push(d)
-      } else if (d.isOwner) {
-        owner.push(d)
-      } else if (d.validator) {
-        validators.push(d)
       } else {
         miners.push(d)
       }
     }
-    return { miners, validators, owner, highlighted }
+    return { miners, highlighted }
   }, [data, highlightColdkey])
 
   const N = data.length
@@ -265,19 +258,7 @@ export function IncentiveChart({
               shape={VerticalBarDot}
               isAnimationActive={false}
             />
-            <Scatter
-              data={groups.validators}
-              fill={COLOR_VALIDATOR}
-              shape={VerticalBarDot}
-              isAnimationActive={false}
-            />
-            <Scatter
-              data={groups.owner}
-              fill={COLOR_OWNER}
-              shape={VerticalBarDot}
-              isAnimationActive={false}
-            />
-            {/* Rendered last so it sits on top of all other role colors. */}
+            {/* Rendered last so it sits on top of the miner color. */}
             <Scatter
               data={groups.highlighted}
               fill={COLOR_HIGHLIGHT}
@@ -290,8 +271,6 @@ export function IncentiveChart({
 
       <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-xs text-muted-foreground">
         <LegendDot color={COLOR_MINER} label="Miner" />
-        <LegendDot color={COLOR_VALIDATOR} label="Validator" />
-        <LegendDot color={COLOR_OWNER} label="Owner" />
         {highlightColdkey.trim() && groups.highlighted.length > 0 && (
           <LegendDot color={COLOR_HIGHLIGHT} label="Highlighted" />
         )}
