@@ -53,32 +53,45 @@ const SORT_VALUE: Record<SortKey, (n: MetagraphNeuron) => number> = {
 interface MetagraphTableProps {
   neurons: MetagraphNeuron[]
   loadError?: string | null
+  /** `coldkey → nickname` from the signed-in user's saved labels. */
+  nicknames?: Record<string, string>
 }
 
-function matchesQuery(n: MetagraphNeuron, q: string): boolean {
+function matchesQuery(
+  n: MetagraphNeuron,
+  q: string,
+  nickname: string | undefined,
+): boolean {
   if (!q) return true
   const needle = q.toLowerCase().trim()
   // Numeric input matches UID exactly so `42` finds UID 42 (and not UID 142).
   if (/^\d+$/.test(needle) && String(n.uid) === needle) return true
   return (
     n.hotkey.toLowerCase().includes(needle) ||
-    n.coldkey.toLowerCase().includes(needle)
+    n.coldkey.toLowerCase().includes(needle) ||
+    (nickname ? nickname.toLowerCase().includes(needle) : false)
   )
 }
 
-export function MetagraphTable({ neurons, loadError }: MetagraphTableProps) {
+export function MetagraphTable({
+  neurons,
+  loadError,
+  nicknames = {},
+}: MetagraphTableProps) {
   const [page, setPage] = useState(1)
   const [query, setQuery] = useState("")
   const [sortKey, setSortKey] = useState<SortKey | null>(null)
   const [sortDir, setSortDir] = useState<SortDir>("desc")
 
   const filteredSorted = useMemo(() => {
-    const filtered = neurons.filter((n) => matchesQuery(n, query))
+    const filtered = neurons.filter((n) =>
+      matchesQuery(n, query, nicknames[n.coldkey]),
+    )
     if (!sortKey) return filtered
     const get = SORT_VALUE[sortKey]
     const sign = sortDir === "desc" ? -1 : 1
     return filtered.sort((a, b) => sign * (get(a) - get(b)))
-  }, [neurons, query, sortKey, sortDir])
+  }, [neurons, query, sortKey, sortDir, nicknames])
 
   // Reset to page 1 on any visible-set change.
   useEffect(() => {
@@ -262,7 +275,22 @@ export function MetagraphTable({ neurons, loadError }: MetagraphTableProps) {
                     <CopyableAddress address={n.hotkey} />
                   </TableCell>
                   <TableCell className="px-3 text-xs">
-                    <CopyableAddress address={n.coldkey} />
+                    {nicknames[n.coldkey] ? (
+                      <div className="flex flex-col leading-tight">
+                        <span
+                          className="truncate text-xs font-semibold text-emerald-300"
+                          title={nicknames[n.coldkey]}
+                        >
+                          {nicknames[n.coldkey]}
+                        </span>
+                        <CopyableAddress
+                          address={n.coldkey}
+                          className="text-[10px] text-muted-foreground"
+                        />
+                      </div>
+                    ) : (
+                      <CopyableAddress address={n.coldkey} />
+                    )}
                   </TableCell>
                   <TableCell className="px-3 text-center text-sm">
                     <span

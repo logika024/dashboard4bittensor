@@ -166,7 +166,11 @@ export default async function SubnetDetailPage({ params }: PageProps) {
         <IncentiveChart neurons={metagraph} nicknames={nicknames} />
       )}
 
-      <MetagraphTable neurons={metagraph} loadError={metaError} />
+      <MetagraphTable
+        neurons={metagraph}
+        loadError={metaError}
+        nicknames={nicknames}
+      />
     </div>
   )
 }
