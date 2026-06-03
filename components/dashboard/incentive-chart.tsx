@@ -32,6 +32,8 @@ interface IncentiveDatum {
   incentive: number
   hotkey: string
   coldkey: string
+  /** User-defined nickname for this coldkey, if one is saved. */
+  coldkeyNickname: string | null
   alphaStake: number
   rootStake: number
   totalAlphaStake: number
@@ -43,7 +45,16 @@ interface IncentiveDatum {
   active: boolean
 }
 
-export function IncentiveChart({ neurons }: { neurons: MetagraphNeuron[] }) {
+interface IncentiveChartProps {
+  neurons: MetagraphNeuron[]
+  /** `coldkey → nickname` lookup, fed from the signed-in user's DB rows. */
+  nicknames?: Record<string, string>
+}
+
+export function IncentiveChart({
+  neurons,
+  nicknames = {},
+}: IncentiveChartProps) {
   // Assign unique rank 1..N by incentive descending, then sort ascending by
   // rank so the dataset reads left→right as high-rank → rank 1.
   const data: IncentiveDatum[] = useMemo(() => {
@@ -56,6 +67,7 @@ export function IncentiveChart({ neurons }: { neurons: MetagraphNeuron[] }) {
         incentive: n.incentive,
         hotkey: n.hotkey,
         coldkey: n.coldkey,
+        coldkeyNickname: nicknames[n.coldkey] ?? null,
         alphaStake: n.alphaStake,
         rootStake: n.rootStake,
         totalAlphaStake: n.totalAlphaStake,
@@ -71,7 +83,7 @@ export function IncentiveChart({ neurons }: { neurons: MetagraphNeuron[] }) {
       .sort((a, b) => b.incentive - a.incentive)
       .map((d, i) => ({ ...d, rank: i + 1 }))
     return ranked.sort((a, b) => a.rank - b.rank)
-  }, [neurons])
+  }, [neurons, nicknames])
 
   const [highlightColdkey, setHighlightColdkey] = useState("")
 
@@ -404,7 +416,11 @@ function InfoBar({ datum }: { datum: IncentiveDatum }) {
     <div className="grid grid-cols-2 gap-x-6 gap-y-2 rounded-md border border-border bg-muted/30 px-4 py-3 sm:grid-cols-3 md:grid-cols-5 lg:grid-cols-9">
       <Field label="Rank" value={`#${datum.rank}`} accent="orange" />
       <Field label="Incentive" value={datum.incentive.toFixed(5)} />
-      <CopyableField label="Coldkey" address={datum.coldkey} />
+      <CopyableField
+        label="Coldkey"
+        address={datum.coldkey}
+        nickname={datum.coldkeyNickname}
+      />
       <CopyableField label="Hotkey" address={datum.hotkey} />
       <Field label="UID" value={datum.uid.toString()} accent="orange" />
       <Field
@@ -425,21 +441,42 @@ function InfoBar({ datum }: { datum: IncentiveDatum }) {
 function CopyableField({
   label,
   address,
+  nickname,
 }: {
   label: string
   address: string
+  /** When present, displayed as the headline value with the address moved
+   * below in muted text. Click anywhere still copies the full address. */
+  nickname?: string | null
 }) {
   return (
     <div className="flex flex-col gap-0.5">
       <span className="text-[10px] font-medium tracking-wide text-muted-foreground uppercase">
         {label}
       </span>
-      <CopyableAddress
-        address={address}
-        prefix={5}
-        suffix={3}
-        className="text-xs font-semibold text-foreground"
-      />
+      {nickname ? (
+        <div className="flex flex-col leading-tight">
+          <span
+            className="truncate text-sm font-semibold text-emerald-300"
+            title={nickname}
+          >
+            {nickname}
+          </span>
+          <CopyableAddress
+            address={address}
+            prefix={5}
+            suffix={3}
+            className="text-[10px] text-muted-foreground"
+          />
+        </div>
+      ) : (
+        <CopyableAddress
+          address={address}
+          prefix={5}
+          suffix={3}
+          className="text-xs font-semibold text-foreground"
+        />
+      )}
     </div>
   )
 }

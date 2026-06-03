@@ -1,8 +1,6 @@
 // This is your Prisma schema file,
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
-// Get a free hosted Postgres database in seconds: `npx create-db`
-
 generator client {
   provider = "prisma-client"
   output   = "../lib/generated/prisma"
@@ -10,4 +8,27 @@ generator client {
 
 datasource db {
   provider = "postgresql"
+}
+
+/// Per-user coldkey → nickname mapping. Stored separately from Supabase's
+/// auth.users table; `userId` is the SS58-equivalent UUID returned by
+/// `supabase.auth.getUser().id`. No FK relation here — authorization is
+/// enforced in app code (every query scoped by `where: { userId }`).
+///
+/// Constraints enforce the spec:
+///   - one user cannot map a coldkey to two different nicknames
+///   - one user cannot use a nickname for two different coldkeys
+///   - DIFFERENT users can each have their own (coldkey, nickname) pair
+model ColdkeyNickname {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  coldkey   String   @db.VarChar(64)
+  nickname  String   @db.VarChar(64)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@unique([userId, coldkey], map: "coldkey_nicknames_user_coldkey_unique")
+  @@unique([userId, nickname], map: "coldkey_nicknames_user_nickname_unique")
+  @@index([userId])
+  @@map("coldkey_nicknames")
 }
