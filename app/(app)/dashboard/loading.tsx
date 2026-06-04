@@ -3,20 +3,11 @@ import { Skeleton } from "@/components/ui/skeleton"
 export default function DashboardLoading() {
   return (
     <div className="mx-auto flex w-full max-w-425 flex-col gap-6 p-6 animate-in fade-in-0 duration-300">
-      {/* Header */}
-      <header className="flex flex-wrap items-center justify-between gap-4">
-        <div className="space-y-2">
-          <Skeleton className="h-7 w-28" />
-          <Skeleton className="h-4 w-44" />
-        </div>
-        <div className="flex items-center gap-3">
-          <Skeleton className="hidden h-4 w-32 sm:block" />
-          <Skeleton className="size-8 rounded-full" />
-          <Skeleton className="h-7 w-20" />
-        </div>
+      <header className="space-y-2">
+        <Skeleton className="h-7 w-28" />
+        <Skeleton className="h-4 w-44" />
       </header>
 
-      {/* Price chart cards */}
       <div className="grid gap-4 sm:grid-cols-2">
         {Array.from({ length: 2 }).map((_, i) => (
           <div
@@ -38,15 +29,12 @@ export default function DashboardLoading() {
         ))}
       </div>
 
-      {/* Search + count */}
       <div className="flex items-center justify-between gap-3">
         <Skeleton className="h-10 w-full max-w-sm" />
         <Skeleton className="h-3 w-24" />
       </div>
 
-      {/* Table card */}
       <div className="overflow-hidden rounded-xl border border-border bg-card">
-        {/* Table header */}
         <div className="grid grid-cols-[3rem_2rem_1fr_repeat(7,minmax(0,1fr))] items-center gap-3 border-b bg-muted/40 px-3 py-3">
           <Skeleton className="h-3 w-4" />
           <span />
@@ -60,7 +48,6 @@ export default function DashboardLoading() {
           <Skeleton className="ml-auto h-3 w-8" />
         </div>
 
-        {/* 15 skeleton rows — staggered animation for a subtle cascade */}
         {Array.from({ length: 15 }).map((_, i) => (
           <div
             key={i}
@@ -87,7 +74,6 @@ export default function DashboardLoading() {
         ))}
       </div>
 
-      {/* Pagination row */}
       <div className="flex items-center justify-between gap-3">
         <Skeleton className="h-4 w-32" />
         <div className="flex items-center gap-2">

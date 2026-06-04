@@ -9,11 +9,6 @@ export const metadata = {
   description: "Track coldkey balances and label coldkeys",
 }
 
-/**
- * Public page — coldkey balance tracking is open to anyone, but the
- * nickname management section is gated on a signed-in Supabase session
- * since nicknames are stored per user.
- */
 export default async function PortfolioPage() {
   const supabase = await createClient()
   const {
@@ -25,8 +20,6 @@ export default async function PortfolioPage() {
   return (
     <>
       <PortfolioClient />
-      {/* Width/padding match PortfolioClient's own container so the two
-          sections align flush on the page. */}
       <div className="mx-auto w-full max-w-4xl px-6 pb-6">
         {user ? (
           <NicknamesSection initialNicknames={initialNicknames} />

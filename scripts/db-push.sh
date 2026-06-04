@@ -1,0 +1,1 @@
+npx prisma db push --url "$(grep '^DIRECT_URL=' .env | sed 's/^DIRECT_URL=//')"

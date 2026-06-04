@@ -32,3 +32,16 @@ model ColdkeyNickname {
   @@index([userId])
   @@map("coldkey_nicknames")
 }
+
+/// Per-user pinned subnets shown in the Discord-style sidebar.
+model UserSavedSubnet {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  netuid    Int
+  sortOrder Int      @default(0) @map("sort_order")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@unique([userId, netuid], map: "user_saved_subnets_user_netuid_unique")
+  @@index([userId])
+  @@map("user_saved_subnets")
+}

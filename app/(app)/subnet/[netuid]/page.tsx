@@ -1,6 +1,4 @@
 import { notFound, redirect } from "next/navigation"
-import Link from "next/link"
-import { ArrowLeftIcon } from "lucide-react"
 import { createClient } from "@/lib/supabase/server"
 import { TaoswapError } from "@/lib/taoswap/client"
 import {
@@ -33,21 +31,16 @@ export async function generateMetadata({ params }: PageProps) {
 export default async function SubnetDetailPage({ params }: PageProps) {
   const { netuid: raw } = await params
   const netuid = Number.parseInt(raw, 10)
-  // Match `\d+` only — strings like "abc" or "12a" become NaN and 404.
   if (!Number.isInteger(netuid) || String(netuid) !== raw || netuid < 0) {
     notFound()
   }
 
-  // Auth guard — middleware already enforces this, but keep server-side.
   const supabase = await createClient()
   const {
     data: { user },
   } = await supabase.auth.getUser()
   if (!user) redirect("/login")
 
-  // Fan out: screener (cached), hyperparams (single-netuid call), metagraph
-  // (one call up to 1024 neurons), and user's coldkey nicknames (DB-side).
-  // Promise.allSettled so one upstream blip doesn't sink the whole page.
   const [screenerR, hyperR, metaR, nicknamesR] = await Promise.allSettled([
     getSubnetScreener(),
     getSubnetHyperparams(netuid),
@@ -90,20 +83,10 @@ export default async function SubnetDetailPage({ params }: PageProps) {
         : "Failed to load metagraph"
   }
 
-  // If the metadata call confirms the netuid doesn't exist (no row returned),
-  // OR neither the screener nor hyperparams could place it, 404.
   if (!subnet && !hyperparams && !loadError && !hyperError) notFound()
 
   return (
     <div className="mx-auto flex w-full max-w-425 flex-col gap-6 p-6 animate-in fade-in-0 duration-300">
-      <Link
-        href="/dashboard"
-        className="group inline-flex w-fit items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
-      >
-        <ArrowLeftIcon className="size-4 transition-transform group-hover:-translate-x-0.5" />
-        Back to subnets
-      </Link>
-
       {loadError && (
         <p
           role="alert"
@@ -148,7 +131,6 @@ export default async function SubnetDetailPage({ params }: PageProps) {
               tone={subnet.price_1d_pct_change >= 0 ? "up" : "down"}
             />
           </div>
-
         </>
       )}
 
