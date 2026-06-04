@@ -88,7 +88,7 @@ function Metric({
           <span
             aria-label="updates live"
             title="updates live"
-            className="size-1.5 animate-pulse rounded-full bg-emerald-400"
+            className="size-1.5 animate-pulse rounded-full bg-positive"
           />
         )}
       </p>

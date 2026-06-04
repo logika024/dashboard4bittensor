@@ -16,7 +16,7 @@ import { Input } from "@/components/ui/input"
 import { CopyableAddress } from "@/components/dashboard/copyable-address"
 import type { MetagraphNeuron } from "@/lib/taoswap/subnets"
 
-const COLOR_MINER = "#34d399" // emerald-400
+const COLOR_MINER = "#00dbbc" // positive accent
 const COLOR_HIGHLIGHT = "#8b5cf6" // violet-500 — distinct from miner color
 
 // Chart geometry — must match the <ScatterChart margin> prop and YAxis width.
@@ -436,7 +436,7 @@ function CopyableField({
       {nickname ? (
         <div className="flex flex-col leading-tight">
           <span
-            className="truncate text-sm font-semibold text-emerald-300"
+            className="truncate text-sm font-semibold text-positive"
             title={nickname}
           >
             {nickname}
@@ -475,7 +475,7 @@ function Field({
     accent === "orange"
       ? "text-orange-400"
       : accent === "green"
-        ? "text-emerald-400"
+        ? "text-positive"
         : "text-foreground"
   return (
     <div className="flex flex-col gap-0.5">

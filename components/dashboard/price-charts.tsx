@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useRef, useState } from "react"
+import { parseAsStringLiteral, useQueryState } from "nuqs"
 import {
   Area,
   AreaChart,
@@ -21,11 +22,12 @@ import {
 import { cn } from "@/lib/utils"
 
 interface PriceChartsProps {
-  /** Initial 24h data fetched server-side, so first paint is instant. */
+  /** Initial range data fetched server-side, so first paint is instant. */
   initialTao: PriceSummary | null
   initialBtc: PriceSummary | null
   initialTaoError: string | null
   initialBtcError: string | null
+  initialRange: PriceRange
 }
 
 export function PriceCharts({
@@ -33,8 +35,14 @@ export function PriceCharts({
   initialBtc,
   initialTaoError,
   initialBtcError,
+  initialRange,
 }: PriceChartsProps) {
-  const [range, setRange] = useState<PriceRange>("24h")
+  const [range, setRange] = useQueryState(
+    "range",
+    parseAsStringLiteral(["24h", "7d", "30d", "90d", "1y"] as const).withDefault(
+      initialRange,
+    ),
+  )
   const [tao, setTao] = useState<PriceSummary | null>(initialTao)
   const [btc, setBtc] = useState<PriceSummary | null>(initialBtc)
   const [taoError, setTaoError] = useState<string | null>(initialTaoError)
@@ -79,7 +87,13 @@ export function PriceCharts({
 
   return (
     <div className="flex flex-col gap-3 animate-in fade-in-0 slide-in-from-top-1 duration-500">
-      <RangeTabs value={range} onChange={setRange} loading={loading} />
+      <RangeTabs
+        value={range}
+        onChange={(next) => {
+          void setRange(next)
+        }}
+        loading={loading}
+      />
       <div className="grid gap-4 sm:grid-cols-2">
         <PriceCard
           label="TAO"
@@ -186,7 +200,7 @@ function PriceCard({
   loading,
 }: PriceCardProps) {
   const positive = (data?.changePct ?? 0) >= 0
-  const accent = positive ? "#34d399" : "#f87171" // emerald-400 / red-400
+  const accent = positive ? "#00dbbc" : "#f87171" // positive / red-400
   const gradientId = `price-grad-${label.toLowerCase()}`
 
   return (
@@ -219,7 +233,7 @@ function PriceCard({
             <p
               className={cn(
                 "text-sm font-medium tabular-nums",
-                positive ? "text-emerald-400" : "text-red-400",
+                positive ? "text-positive" : "text-red-400",
               )}
             >
               {formatPctSigned(data.changePct)}

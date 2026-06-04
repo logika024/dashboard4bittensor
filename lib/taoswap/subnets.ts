@@ -27,6 +27,26 @@ interface TaoswapSubnetRaw {
   price_evolution_d_30: number
   /** Market cap in TAO (already converted from rao). */
   market_cap: number
+  /** Gross TAO inflow over the API's default 1D window. */
+  inflow?: number | null
+  /** Gross TAO outflow over the API's default 1D window. */
+  outflow?: number | null
+  /** Alpha reserve in the subnet pool. */
+  alpha_in_pool?: number | null
+  /** TAO reserve in the subnet pool. */
+  root_in_pool?: number | null
+  /** Per-block total emission in TAO units. */
+  emission_value?: number | null
+  /** Incentive burn metric from taoswap (percent-scale numeric). */
+  emission_miner_burn?: number | null
+  /**
+   * Optional 7d flow fields. These are not always present in `/subnets/`,
+   * so we treat them as nullable and gracefully fall back in the UI.
+   */
+  flow_1w?: number | null
+  flow_7d?: number | null
+  inflow_7d?: number | null
+  outflow_7d?: number | null
   /** Percent units (e.g. 4.40 means 4.40%). */
   emission_percent: number
   tempo: number
@@ -120,6 +140,16 @@ export interface SubnetScreenerRow {
   price_1d_pct_change: number
   price_7d_pct_change: number
   price_1m_pct_change: number
+  /** Net flow in TAO over 1 day (inflow - outflow). */
+  flow_1d: number
+  /** Net flow in TAO over 7 days when exposed by taoswap; otherwise null. */
+  flow_1w: number | null
+  /** Pool liquidity in TAO (TAO reserve + alpha reserve valued in TAO). */
+  liquidity: number
+  /** Per-block total emission in TAO units. */
+  totalEmission: number
+  /** Incentive burn metric from taoswap. */
+  incentiveBurn: number
 }
 
 export interface SubnetHyperparams {
@@ -175,6 +205,19 @@ function pickName(s: TaoswapSubnetRaw): string {
 }
 
 function mapSubnet(s: TaoswapSubnetRaw): SubnetScreenerRow {
+  const inflow = s.inflow ?? 0
+  const outflow = s.outflow ?? 0
+  const rootInPool = s.root_in_pool ?? 0
+  const alphaInPool = s.alpha_in_pool ?? 0
+  // /subnets/ reliably exposes 1D inflow/outflow, but 7D flow fields are
+  // optional/undocumented and may be absent depending on upstream rollout.
+  const flow1w =
+    s.flow_1w ??
+    s.flow_7d ??
+    (s.inflow_7d != null || s.outflow_7d != null
+      ? (s.inflow_7d ?? 0) - (s.outflow_7d ?? 0)
+      : null)
+
   return {
     netuid: s.id,
     name: pickName(s),
@@ -187,6 +230,11 @@ function mapSubnet(s: TaoswapSubnetRaw): SubnetScreenerRow {
     price_1d_pct_change: (s.price_evolution_h_24 ?? 0) / 100,
     price_7d_pct_change: (s.price_evolution_d_7 ?? 0) / 100,
     price_1m_pct_change: (s.price_evolution_d_30 ?? 0) / 100,
+    flow_1d: inflow - outflow,
+    flow_1w: flow1w,
+    liquidity: rootInPool + alphaInPool * s.price,
+    totalEmission: s.emission_value ?? 0,
+    incentiveBurn: s.emission_miner_burn ?? 0,
   }
 }
 
