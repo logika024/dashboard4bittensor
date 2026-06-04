@@ -11,7 +11,6 @@ import {
   YAxis,
 } from "recharts"
 import { Card } from "@/components/ui/card"
-import { Spinner } from "@/components/ui/spinner"
 import {
   PRICE_RANGES,
   type CoinKey,
@@ -152,7 +151,10 @@ interface RangeTabsProps {
 
 function RangeTabs({ value, onChange, loading }: RangeTabsProps) {
   return (
-    <div className="flex items-center gap-1 self-start rounded-lg border border-border bg-card p-1">
+    <div
+      aria-busy={loading}
+      className="flex items-center gap-1 self-start rounded-lg border border-border bg-card p-1"
+    >
       {PRICE_RANGES.map((r) => (
         <button
           key={r}
@@ -172,12 +174,6 @@ function RangeTabs({ value, onChange, loading }: RangeTabsProps) {
           {r}
         </button>
       ))}
-      {loading && (
-        <Spinner
-          label="Updating charts"
-          className="ml-1 size-3 text-muted-foreground"
-        />
-      )}
     </div>
   )
 }
@@ -244,7 +240,7 @@ function PriceCard({
       </div>
 
       {data && data.history.length > 1 ? (
-        <div className="-mx-3 h-32">
+        <div className="-mx-3 h-32 no-focus-outline">
           <ResponsiveContainer width="100%" height="100%">
             <AreaChart
               data={data.history}

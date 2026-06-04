@@ -124,6 +124,20 @@
   * {
     @apply border-border outline-ring/50;
   }
+  /* Recharts responsive wrapper can receive focus-visible and show an outline. */
+  .recharts-responsive-container:focus-visible, .recharts-wrapper:focus-visible {
+    outline: none !important;
+  }
+  /* Scoped opt-out: remove all focus outlines/rings within chart containers. */
+  .no-focus-outline :where(*, *::before, *::after):focus,
+  .no-focus-outline :where(*, *::before, *::after):focus-visible {
+    outline: none !important;
+    box-shadow: none !important;
+  }
+  .no-focus-outline :where(*, *::before, *::after) {
+    --tw-ring-shadow: 0 0 #0000 !important;
+    --tw-ring-offset-shadow: 0 0 #0000 !important;
+  }
   body {
     @apply bg-background text-foreground;
   }
