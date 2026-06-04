@@ -60,7 +60,7 @@ export function CopyableAddress({
     >
       <span>{display}</span>
       {copied ? (
-        <CheckIcon className="size-3 shrink-0 text-emerald-400" />
+        <CheckIcon className="size-3 shrink-0 text-positive" />
       ) : (
         <CopyIcon className="size-3 shrink-0 text-muted-foreground opacity-0 transition-opacity group-hover/copy:opacity-100 group-focus-visible/copy:opacity-100" />
       )}

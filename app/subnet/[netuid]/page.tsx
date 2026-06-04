@@ -190,7 +190,7 @@ function StatCard({ label, value, tone }: StatCardProps) {
       <p
         className={cn(
           "font-heading text-2xl font-semibold tabular-nums tracking-tight",
-          tone === "up" && "text-emerald-400",
+          tone === "up" && "text-positive",
           tone === "down" && "text-red-400",
         )}
       >

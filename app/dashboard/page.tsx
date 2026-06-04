@@ -9,7 +9,9 @@ import {
 import {
   CoinGeckoError,
   getPriceSummary,
+  PRICE_RANGES,
   type PriceSummary,
+  type PriceRange,
 } from "@/lib/coingecko/price"
 import { SubnetTable } from "@/components/dashboard/subnet-table"
 import { PriceCharts } from "@/components/dashboard/price-charts"
@@ -21,7 +23,21 @@ export const metadata = {
   description: "Live Bittensor subnet screener",
 }
 
-export default async function DashboardPage() {
+interface DashboardPageProps {
+  searchParams: Promise<{ range?: string | string[] | undefined }>
+}
+
+function parseInitialRange(raw: string | string[] | undefined): PriceRange {
+  const value = Array.isArray(raw) ? raw[0] : raw
+  return PRICE_RANGES.includes(value as PriceRange)
+    ? (value as PriceRange)
+    : "24h"
+}
+
+export default async function DashboardPage({ searchParams }: DashboardPageProps) {
+  const { range } = await searchParams
+  const initialRange = parseInitialRange(range)
+
   const supabase = await createClient()
   const {
     data: { user },
@@ -34,8 +50,8 @@ export default async function DashboardPage() {
   // single upstream hiccup doesn't kill the whole page render.
   const [screenerR, taoR, btcR] = await Promise.allSettled([
     getSubnetScreener(),
-    getPriceSummary("tao", "24h"),
-    getPriceSummary("btc", "24h"),
+    getPriceSummary("tao", initialRange),
+    getPriceSummary("btc", initialRange),
   ])
 
   let subnets: SubnetScreenerRow[] = []
@@ -112,6 +128,7 @@ export default async function DashboardPage() {
         initialBtc={btc}
         initialTaoError={taoError}
         initialBtcError={btcError}
+        initialRange={initialRange}
       />
 
       <SubnetTable subnets={subnets} loadError={loadError} />

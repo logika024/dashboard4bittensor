@@ -57,7 +57,12 @@ export default async function LoginPage({
 
 function GoogleIcon() {
   return (
-    <svg viewBox="0 0 24 24" aria-hidden="true" className="size-4">
+    <svg
+      viewBox="0 0 24 24"
+      aria-hidden="true"
+      className="size-4"
+      suppressHydrationWarning
+    >
       <path
         fill="#EA4335"
         d="M5.266 9.765A7.077 7.077 0 0 1 12 4.909c1.69 0 3.218.6 4.418 1.582L19.91 3C17.782 1.145 15.055 0 12 0 7.27 0 3.198 2.698 1.24 6.65l4.026 3.115Z"
@@ -85,6 +90,7 @@ function GitHubIcon() {
       aria-hidden="true"
       fill="currentColor"
       className="size-4"
+      suppressHydrationWarning
     >
       <path
         fillRule="evenodd"

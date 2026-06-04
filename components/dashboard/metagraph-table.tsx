@@ -264,7 +264,7 @@ export function MetagraphTable({
                       {n.validatorPermit && !n.isOwnerHotkey && (
                         <span
                           title="Validator permit"
-                          className="rounded bg-sky-500/15 px-1.5 py-0.5 text-[10px] font-semibold tracking-wide text-sky-300 uppercase"
+                          className="rounded bg-positive/15 px-1.5 py-0.5 text-[10px] font-semibold tracking-wide text-positive uppercase"
                         >
                           V
                         </span>
@@ -278,7 +278,7 @@ export function MetagraphTable({
                     {nicknames[n.coldkey] ? (
                       <div className="flex flex-col leading-tight">
                         <span
-                          className="truncate text-xs font-semibold text-emerald-300"
+                          className="truncate text-xs font-semibold text-positive"
                           title={nicknames[n.coldkey]}
                         >
                           {nicknames[n.coldkey]}
@@ -296,7 +296,7 @@ export function MetagraphTable({
                     <span
                       aria-label={n.active ? "Active" : "Inactive"}
                       title={n.active ? "Active" : "Inactive"}
-                      className={n.active ? "text-emerald-400" : "text-red-400"}
+                      className={n.active ? "text-positive" : "text-red-400"}
                     >
                       ●
                     </span>
