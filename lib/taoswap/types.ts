@@ -79,3 +79,25 @@ export interface PortfolioSubnetBalanceDay {
   alphaInTao: number
   alphaInUsd: number
 }
+
+export interface AlphaSubnetBalance {
+  netuid: number
+  alpha: number
+  alphaInTao: number
+  alphaInUsd: number
+}
+
+/** Latest balance snapshot derived from Taoswap portfolio-balance (daily). */
+export interface ColdkeyPortfolioBalances {
+  coldkey: string
+  accountKnown: boolean
+  /** Snapshot date (YYYY-MM-DD) from Taoswap; null if no rows returned. */
+  asOf: string | null
+  freeTao: number
+  freeUsd: number
+  stakedTao: number
+  alphaBySubnet: AlphaSubnetBalance[]
+  totalAlphaInTao: number
+  totalTao: number
+  totalUsd: number
+}

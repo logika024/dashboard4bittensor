@@ -55,6 +55,7 @@ export async function getPortfolioBalanceHistory(
       days,
       ...(options.subnets ? { subnets: options.subnets } : {}),
     },
+    { revalidate: 0 },
   )
 
   const results = raw.results.map(mapDay).sort((a, b) =>

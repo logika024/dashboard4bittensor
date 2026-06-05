@@ -124,10 +124,56 @@
   * {
     @apply border-border outline-ring/50;
   }
+  /* Recharts responsive wrapper can receive focus-visible and show an outline. */
+  .recharts-responsive-container:focus-visible, .recharts-wrapper:focus-visible {
+    outline: none !important;
+  }
+  /* Scoped opt-out: remove all focus outlines/rings within chart containers. */
+  .no-focus-outline :where(*, *::before, *::after):focus,
+  .no-focus-outline :where(*, *::before, *::after):focus-visible {
+    outline: none !important;
+    box-shadow: none !important;
+  }
+  .no-focus-outline :where(*, *::before, *::after) {
+    --tw-ring-shadow: 0 0 #0000 !important;
+    --tw-ring-offset-shadow: 0 0 #0000 !important;
+  }
   body {
     @apply bg-background text-foreground;
   }
   html {
     @apply font-sans;
+  }
+}
+
+@layer utilities {
+  /* Thin, theme-aware scrollbars for horizontal tab strips and panels. */
+  .scrollbar-subtle {
+    scrollbar-width: thin;
+    scrollbar-color: color-mix(in oklch, var(--foreground) 22%, transparent)
+      transparent;
+  }
+
+  .scrollbar-subtle::-webkit-scrollbar {
+    height: 5px;
+    width: 5px;
+  }
+
+  .scrollbar-subtle::-webkit-scrollbar-track {
+    background: transparent;
+    margin-inline: 6px;
+  }
+
+  .scrollbar-subtle::-webkit-scrollbar-thumb {
+    background: color-mix(in oklch, var(--foreground) 18%, transparent);
+    border-radius: 9999px;
+  }
+
+  .scrollbar-subtle::-webkit-scrollbar-thumb:hover {
+    background: color-mix(in oklch, var(--foreground) 32%, transparent);
+  }
+
+  .scrollbar-subtle::-webkit-scrollbar-corner {
+    background: transparent;
   }
 }

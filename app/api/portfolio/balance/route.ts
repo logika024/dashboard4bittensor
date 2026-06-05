@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server"
 import { z } from "zod"
 import { coldkeyQuerySchema } from "@/lib/portfolio/coldkey-schema"
-import { getColdkeyPortfolioBalances } from "@/lib/taoapp/balance"
-import { TaoAppError } from "@/lib/taoapp/client"
+import { getColdkeyPortfolioBalances } from "@/lib/taoswap/balance"
+import { TaoswapError } from "@/lib/taoswap/client"
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url)
@@ -21,7 +21,7 @@ export async function GET(request: Request) {
     const balances = await getColdkeyPortfolioBalances(parsed.data.coldkey)
     return NextResponse.json(balances)
   } catch (err) {
-    if (err instanceof TaoAppError) {
+    if (err instanceof TaoswapError) {
       return NextResponse.json(
         { error: err.message, detail: err.body },
         { status: err.status >= 400 && err.status < 600 ? err.status : 502 },

@@ -177,7 +177,7 @@ export function IncentiveChart({
 
       <div
         ref={wrapperRef}
-        className="h-72"
+        className="h-96"
         onMouseMove={handleWrapperMouseMove}
         // Intentionally do NOT clear `hovered` on leave — the user wants the
         // info bar to keep showing the last hovered neuron's details. We

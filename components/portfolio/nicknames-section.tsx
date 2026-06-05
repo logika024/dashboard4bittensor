@@ -7,17 +7,17 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Spinner } from "@/components/ui/spinner"
 import {
-  addMyNickname,
-  removeMyNickname,
-  type NicknameRecord,
+  addColdkeyLabel,
+  removeColdkeyLabel,
+  type ColdkeyLabelRecord,
 } from "@/lib/portfolio/nicknames"
 
 interface NicknamesSectionProps {
-  initialNicknames: NicknameRecord[]
+  initialLabels: ColdkeyLabelRecord[]
 }
 
-export function NicknamesSection({ initialNicknames }: NicknamesSectionProps) {
-  const [items, setItems] = useState<NicknameRecord[]>(initialNicknames)
+export function NicknamesSection({ initialLabels }: NicknamesSectionProps) {
+  const [items, setItems] = useState(initialLabels)
   const [coldkey, setColdkey] = useState("")
   const [nickname, setNickname] = useState("")
   const [error, setError] = useState<string | null>(null)
@@ -27,9 +27,10 @@ export function NicknamesSection({ initialNicknames }: NicknamesSectionProps) {
   function handleAdd() {
     setError(null)
     startSaving(async () => {
-      const result = await addMyNickname({
+      const result = await addColdkeyLabel({
         coldkey: coldkey.trim(),
         nickname: nickname.trim(),
+        isMyColdkey: false,
       })
       if (!result.ok) {
         setError(result.error ?? "Failed to save")
@@ -46,7 +47,7 @@ export function NicknamesSection({ initialNicknames }: NicknamesSectionProps) {
   function handleRemove(id: string) {
     setError(null)
     setPendingDelete(id)
-    void removeMyNickname(id).then((result) => {
+    void removeColdkeyLabel(id).then((result) => {
       setPendingDelete(null)
       if (!result.ok) {
         setError(result.error ?? "Failed to delete")
@@ -59,10 +60,10 @@ export function NicknamesSection({ initialNicknames }: NicknamesSectionProps) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-base">Coldkey nicknames</CardTitle>
+        <CardTitle className="text-base">Label coldkeys</CardTitle>
         <p className="text-sm text-muted-foreground">
-          Label coldkeys you recognize. Nicknames appear on the subnet detail
-          page when you hover a matching dot on the incentive chart.
+          Private notes for coldkeys you do not own. Labels appear on subnet
+          pages when you hover a matching miner on the incentive chart.
         </p>
       </CardHeader>
       <CardContent className="flex flex-col gap-4">
@@ -75,7 +76,7 @@ export function NicknamesSection({ initialNicknames }: NicknamesSectionProps) {
             disabled={isSaving}
           />
           <Input
-            placeholder="Nickname"
+            placeholder="Your note"
             value={nickname}
             onChange={(e) => setNickname(e.target.value)}
             className="sm:flex-1"
@@ -105,7 +106,7 @@ export function NicknamesSection({ initialNicknames }: NicknamesSectionProps) {
 
         {items.length === 0 ? (
           <p className="rounded-md border border-dashed border-border px-3 py-6 text-center text-sm text-muted-foreground">
-            No nicknames yet. Add a coldkey above to label it.
+            No labels yet. Add a coldkey above to annotate it.
           </p>
         ) : (
           <ul className="divide-y rounded-md border">
@@ -132,7 +133,7 @@ export function NicknamesSection({ initialNicknames }: NicknamesSectionProps) {
                   type="button"
                   variant="ghost"
                   size="icon-sm"
-                  aria-label={`Remove nickname for ${item.coldkey}`}
+                  aria-label={`Remove label for ${item.coldkey}`}
                   disabled={pendingDelete === item.id}
                   onClick={() => handleRemove(item.id)}
                 >

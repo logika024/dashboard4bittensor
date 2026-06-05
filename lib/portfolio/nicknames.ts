@@ -5,7 +5,7 @@ import { z } from "zod"
 import { createClient } from "@/lib/supabase/server"
 import { prisma } from "@/lib/prisma/client"
 
-const nicknameInput = z.object({
+const coldkeyLabelInput = z.object({
   coldkey: z
     .string()
     .trim()
@@ -15,68 +15,107 @@ const nicknameInput = z.object({
   nickname: z
     .string()
     .trim()
-    .min(1, "Nickname is required")
-    .max(64, "Nickname is too long"),
+    .min(1, "Label is required")
+    .max(64, "Label is too long"),
+  isMyColdkey: z.boolean(),
+  tracked: z.boolean().optional(),
 })
 
-export interface NicknameRecord {
+export interface ColdkeyLabelRecord {
   id: string
   coldkey: string
   nickname: string
+  isMyColdkey: boolean
+  tracked: boolean
 }
 
-export interface NicknameMutationResult {
+export interface ColdkeyLabelMutationResult {
   ok: boolean
   error?: string
-  data?: NicknameRecord
+  data?: ColdkeyLabelRecord
 }
 
-/**
- * List the signed-in user's coldkey nicknames. Returns [] for anonymous
- * visitors — never throws so callers can render the portfolio page even
- * when the DB is briefly unreachable.
- */
-export async function listMyNicknames(): Promise<NicknameRecord[]> {
+const labelSelect = {
+  id: true,
+  coldkey: true,
+  nickname: true,
+  isMyColdkey: true,
+  tracked: true,
+} as const
+
+function revalidatePortfolioPaths() {
+  revalidatePath("/portfolio")
+  revalidatePath("/portfolio/my-coldkeys")
+  revalidatePath("/portfolio/label-coldkeys")
+}
+
+async function requireUserId(): Promise<string | null> {
   const supabase = await createClient()
   const {
     data: { user },
   } = await supabase.auth.getUser()
-  if (!user) return []
+  return user?.id ?? null
+}
+
+export async function listColdkeyLabels(
+  filter?: { isMyColdkey?: boolean; tracked?: boolean },
+): Promise<ColdkeyLabelRecord[]> {
+  const userId = await requireUserId()
+  if (!userId) return []
 
   try {
-    const rows = await prisma.coldkeyNickname.findMany({
-      where: { userId: user.id },
+    return await prisma.coldkeyNickname.findMany({
+      where: {
+        userId,
+        ...(filter?.isMyColdkey === undefined
+          ? {}
+          : { isMyColdkey: filter.isMyColdkey }),
+        ...(filter?.tracked === undefined ? {} : { tracked: filter.tracked }),
+      },
       orderBy: { createdAt: "desc" },
-      select: { id: true, coldkey: true, nickname: true },
+      select: labelSelect,
     })
-    return rows
   } catch (err) {
-    console.error("[listMyNicknames]", err)
+    console.error("[listColdkeyLabels]", err)
     return []
   }
 }
 
-/**
- * Return a `coldkey → nickname` map for the signed-in user. Used by the
- * subnet detail page to enrich the incentive-chart info bar.
- */
+export async function listMyColdkeys(): Promise<ColdkeyLabelRecord[]> {
+  return listColdkeyLabels({ isMyColdkey: true })
+}
+
+export async function listTrackedMyColdkeys(): Promise<ColdkeyLabelRecord[]> {
+  return listColdkeyLabels({ isMyColdkey: true, tracked: true })
+}
+
+export async function listUntrackedMyColdkeys(): Promise<ColdkeyLabelRecord[]> {
+  return listColdkeyLabels({ isMyColdkey: true, tracked: false })
+}
+
+export async function listLabeledColdkeys(): Promise<ColdkeyLabelRecord[]> {
+  return listColdkeyLabels({ isMyColdkey: false })
+}
+
+/** @deprecated Use listLabeledColdkeys */
+export async function listMyNicknames(): Promise<ColdkeyLabelRecord[]> {
+  return listLabeledColdkeys()
+}
+
 export async function getMyNicknameMap(): Promise<Record<string, string>> {
-  const rows = await listMyNicknames()
+  const rows = await listColdkeyLabels()
   const out: Record<string, string> = {}
   for (const r of rows) out[r.coldkey] = r.nickname
   return out
 }
 
-export async function addMyNickname(
+export async function addColdkeyLabel(
   input: unknown,
-): Promise<NicknameMutationResult> {
-  const supabase = await createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-  if (!user) return { ok: false, error: "Must be signed in" }
+): Promise<ColdkeyLabelMutationResult> {
+  const userId = await requireUserId()
+  if (!userId) return { ok: false, error: "Must be signed in" }
 
-  const parsed = nicknameInput.safeParse(input)
+  const parsed = coldkeyLabelInput.safeParse(input)
   if (!parsed.success) {
     return {
       ok: false,
@@ -84,60 +123,146 @@ export async function addMyNickname(
     }
   }
 
+  const { coldkey, nickname, isMyColdkey } = parsed.data
+  const tracked = isMyColdkey ? (parsed.data.tracked ?? false) : false
+
   try {
-    const row = await prisma.coldkeyNickname.create({
-      data: {
-        userId: user.id,
-        coldkey: parsed.data.coldkey,
-        nickname: parsed.data.nickname,
-      },
-      select: { id: true, coldkey: true, nickname: true },
+    const existing = await prisma.coldkeyNickname.findUnique({
+      where: { userId_coldkey: { userId, coldkey } },
+      select: labelSelect,
     })
-    revalidatePath("/portfolio")
-    return { ok: true, data: row }
-  } catch (err) {
-    // Prisma's unique-constraint error code is P2002. We have two such
-    // constraints, both per-user — coldkey or nickname already used.
-    if (
-      err &&
-      typeof err === "object" &&
-      "code" in err &&
-      (err as { code: string }).code === "P2002"
-    ) {
+
+    if (existing && existing.isMyColdkey !== isMyColdkey) {
       return {
         ok: false,
-        error:
-          "You already have a nickname for this coldkey, or this nickname is already taken.",
+        error: existing.isMyColdkey
+          ? "This coldkey is already saved as one of yours. Remove it from My coldkeys first."
+          : "This coldkey is already labeled as someone else's. Remove it from Label coldkeys first.",
       }
     }
-    console.error("[addMyNickname]", err)
-    return { ok: false, error: "Failed to save nickname" }
+
+    const row = existing
+      ? await prisma.coldkeyNickname.update({
+          where: { id: existing.id },
+          data: { nickname, isMyColdkey, tracked },
+          select: labelSelect,
+        })
+      : await prisma.coldkeyNickname.create({
+          data: { userId, coldkey, nickname, isMyColdkey, tracked },
+          select: labelSelect,
+        })
+
+    revalidatePortfolioPaths()
+    return { ok: true, data: row }
+  } catch (err) {
+    console.error("[addColdkeyLabel]", err)
+    return { ok: false, error: "Failed to save coldkey label" }
   }
 }
 
-export async function removeMyNickname(
+export async function setColdkeyTracked(
   id: string,
-): Promise<NicknameMutationResult> {
-  const supabase = await createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-  if (!user) return { ok: false, error: "Must be signed in" }
+  tracked: boolean,
+): Promise<ColdkeyLabelMutationResult> {
+  const userId = await requireUserId()
+  if (!userId) return { ok: false, error: "Must be signed in" }
 
   try {
-    // deleteMany gives us a scoped delete — only rows with both matching id
-    // AND user_id are removed, so users can't delete each other's rows even
-    // if they guess an id.
+    const existing = await prisma.coldkeyNickname.findFirst({
+      where: { id, userId, isMyColdkey: true },
+      select: labelSelect,
+    })
+    if (!existing) {
+      return { ok: false, error: "Coldkey not found" }
+    }
+
+    const row = await prisma.coldkeyNickname.update({
+      where: { id },
+      data: { tracked },
+      select: labelSelect,
+    })
+
+    revalidatePortfolioPaths()
+    return { ok: true, data: row }
+  } catch (err) {
+    console.error("[setColdkeyTracked]", err)
+    return { ok: false, error: "Failed to update tracking" }
+  }
+}
+
+/** @deprecated Use addColdkeyLabel with isMyColdkey: false */
+export async function addMyNickname(
+  input: unknown,
+): Promise<ColdkeyLabelMutationResult> {
+  const parsed = z
+    .object({
+      coldkey: z.string(),
+      nickname: z.string(),
+    })
+    .safeParse(input)
+  if (!parsed.success) {
+    return addColdkeyLabel(input)
+  }
+  return addColdkeyLabel({ ...parsed.data, isMyColdkey: false })
+}
+
+export async function removeColdkeyLabel(
+  id: string,
+): Promise<ColdkeyLabelMutationResult> {
+  const userId = await requireUserId()
+  if (!userId) return { ok: false, error: "Must be signed in" }
+
+  try {
     const result = await prisma.coldkeyNickname.deleteMany({
-      where: { id, userId: user.id },
+      where: { id, userId },
     })
     if (result.count === 0) {
-      return { ok: false, error: "Nickname not found" }
+      return { ok: false, error: "Coldkey label not found" }
     }
-    revalidatePath("/portfolio")
+    revalidatePortfolioPaths()
     return { ok: true }
   } catch (err) {
-    console.error("[removeMyNickname]", err)
+    console.error("[removeColdkeyLabel]", err)
     return { ok: false, error: "Failed to delete" }
   }
 }
+
+/** @deprecated Use removeColdkeyLabel */
+export async function removeMyNickname(
+  id: string,
+): Promise<ColdkeyLabelMutationResult> {
+  return removeColdkeyLabel(id)
+}
+
+const migrateItemSchema = z.object({
+  address: z.string().trim().min(40).max(50),
+  nickname: z.string().trim().min(1).max(64),
+})
+
+/** One-time import from legacy browser localStorage tracked coldkeys. */
+export async function migrateLocalColdkeys(
+  items: unknown,
+): Promise<{ ok: boolean; imported: number }> {
+  const userId = await requireUserId()
+  if (!userId) return { ok: false, imported: 0 }
+
+  if (!Array.isArray(items)) return { ok: true, imported: 0 }
+
+  let imported = 0
+  for (const raw of items) {
+    const parsed = migrateItemSchema.safeParse(raw)
+    if (!parsed.success) continue
+
+    const result = await addColdkeyLabel({
+      coldkey: parsed.data.address,
+      nickname: parsed.data.nickname,
+      isMyColdkey: true,
+      tracked: true,
+    })
+    if (result.ok) imported++
+  }
+
+  return { ok: true, imported }
+}
+
+export type NicknameRecord = ColdkeyLabelRecord

@@ -10,25 +10,35 @@ datasource db {
   provider = "postgresql"
 }
 
-/// Per-user coldkey → nickname mapping. Stored separately from Supabase's
-/// auth.users table; `userId` is the SS58-equivalent UUID returned by
-/// `supabase.auth.getUser().id`. No FK relation here — authorization is
-/// enforced in app code (every query scoped by `where: { userId }`).
-///
-/// Constraints enforce the spec:
-///   - one user cannot map a coldkey to two different nicknames
-///   - one user cannot use a nickname for two different coldkeys
-///   - DIFFERENT users can each have their own (coldkey, nickname) pair
+/// Per-user coldkey labels. `isMyColdkey` distinguishes wallets you own
+/// (portfolio tracking) from notes on other people's coldkeys (chart labels).
+/// Different users can label the same on-chain address differently.
 model ColdkeyNickname {
-  id        String   @id @default(uuid()) @db.Uuid
-  userId    String   @map("user_id") @db.Uuid
-  coldkey   String   @db.VarChar(64)
-  nickname  String   @db.VarChar(64)
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
+  id          String   @id @default(uuid()) @db.Uuid
+  userId      String   @map("user_id") @db.Uuid
+  coldkey     String   @db.VarChar(64)
+  nickname    String   @db.VarChar(64)
+  isMyColdkey Boolean  @default(false) @map("is_my_coldkey")
+  tracked       Boolean  @default(false)
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
 
   @@unique([userId, coldkey], map: "coldkey_nicknames_user_coldkey_unique")
-  @@unique([userId, nickname], map: "coldkey_nicknames_user_nickname_unique")
   @@index([userId])
+  @@index([userId, isMyColdkey])
+  @@index([userId, tracked])
   @@map("coldkey_nicknames")
+}
+
+/// Per-user pinned subnets shown in the Discord-style sidebar.
+model UserSavedSubnet {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  netuid    Int
+  sortOrder Int      @default(0) @map("sort_order")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@unique([userId, netuid], map: "user_saved_subnets_user_netuid_unique")
+  @@index([userId])
+  @@map("user_saved_subnets")
 }
