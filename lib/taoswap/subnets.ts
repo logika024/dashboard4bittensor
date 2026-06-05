@@ -128,6 +128,8 @@ async function getCurrentChainBlock(): Promise<number | null> {
 export interface SubnetScreenerRow {
   netuid: number
   name: string
+  /** Subnet alpha token symbol when exposed by taoswap. */
+  symbol: string | null
   logoUrl: string | null
   /** Spot alpha price in TAO. */
   price: number
@@ -221,6 +223,7 @@ function mapSubnet(s: TaoswapSubnetRaw): SubnetScreenerRow {
   return {
     netuid: s.id,
     name: pickName(s),
+    symbol: s.symbol?.trim() || null,
     logoUrl: pickLogo(s),
     price: s.price,
     marketCap: s.market_cap,

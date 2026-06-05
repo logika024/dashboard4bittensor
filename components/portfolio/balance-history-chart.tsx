@@ -139,7 +139,7 @@ export function BalanceHistoryChart({
   }
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="no-focus-outline flex min-w-0 w-full flex-col gap-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h3 className="text-base font-medium">Balance history</h3>
         <div className="flex items-center gap-2">
@@ -219,11 +219,11 @@ export function BalanceHistoryChart({
 
       {!loading && !error && chartData.length > 0 && (
         <>
-          <div className="h-[280px] w-full">
+          <div className="h-[280px] min-w-0 w-full">
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart
                 data={chartData}
-                margin={{ top: 8, right: 8, left: 0, bottom: 0 }}
+                margin={{ top: 8, right: 12, left: 4, bottom: 4 }}
               >
                 <CartesianGrid
                   stroke="var(--border)"

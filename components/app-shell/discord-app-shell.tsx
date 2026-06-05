@@ -7,11 +7,10 @@ import {
   HashIcon,
   HomeIcon,
   LogOutIcon,
-  MicOffIcon,
-  HeadphonesIcon,
   PlusIcon,
   SearchIcon,
   SettingsIcon,
+  WalletIcon,
 } from "lucide-react"
 import { signOut } from "@/app/login/actions"
 import { SubnetIcon } from "@/components/dashboard/subnet-icon"
@@ -36,6 +35,11 @@ import {
   SUBNET_CHANNELS,
   subnetChannelHref,
 } from "@/lib/subnet/channels"
+import {
+  getPortfolioChannel,
+  PORTFOLIO_CHANNELS,
+  portfolioChannelHref,
+} from "@/lib/portfolio/channels"
 import { cn } from "@/lib/utils"
 
 /** Discord dark theme palette */
@@ -100,6 +104,7 @@ export function DiscordAppShell({
   const [topSearch, setTopSearch] = useState("")
 
   const isHome = pathname === "/dashboard" || pathname.startsWith("/dashboard?")
+  const isPortfolioView = pathname === "/portfolio" || pathname.startsWith("/portfolio/")
   const activeNetuid = useMemo(() => {
     const match = pathname.match(/^\/subnet\/(\d+)/)
     return match ? Number.parseInt(match[1], 10) : null
@@ -110,6 +115,17 @@ export function DiscordAppShell({
     if (activeNetuid == null) return null
     return getSubnetChannel(pathname, activeNetuid)
   }, [pathname, activeNetuid])
+
+  const portfolioSection = useMemo(() => {
+    if (!isPortfolioView) return null
+    return getPortfolioChannel(pathname)
+  }, [pathname, isPortfolioView])
+
+  const sidebarPanel = useMemo((): "subnet" | "portfolio" | null => {
+    if (isSubnetView && activeNetuid != null) return "subnet"
+    if (isPortfolioView) return "portfolio"
+    return null
+  }, [isSubnetView, activeNetuid, isPortfolioView])
 
   const activeSubnet = useMemo(
     () =>
@@ -125,7 +141,14 @@ export function DiscordAppShell({
 
   const topBarTitle = useMemo(() => {
     if (isHome) return "home"
-    if (pathname.startsWith("/portfolio")) return "portfolio"
+
+    if (isPortfolioView && portfolioSection) {
+      const channelLabel =
+        PORTFOLIO_CHANNELS.find((c) => c.id === portfolioSection)?.label ??
+        portfolioSection
+      if (portfolioSection === "portfolio") return "portfolio"
+      return `portfolio * ${channelLabel}`
+    }
 
     if (isSubnetView && subnetSection && activeNetuid != null) {
       const channelLabel =
@@ -150,8 +173,10 @@ export function DiscordAppShell({
     activeSubnet?.name,
     allSubnets,
     isHome,
+    isPortfolioView,
     isSubnetView,
     pathname,
+    portfolioSection,
     subnetSection,
   ])
 
@@ -236,7 +261,7 @@ export function DiscordAppShell({
               paddingBottom: USER_PANEL_INSET,
             }}
           >
-            {isSubnetView && activeNetuid != null && subnetSection != null ? (
+            {sidebarPanel === "subnet" && activeNetuid != null && subnetSection != null ? (
               <>
                 <div
                   className="flex h-11 shrink-0 items-center border-b px-3 shadow-sm"
@@ -258,6 +283,30 @@ export function DiscordAppShell({
                       href={subnetChannelHref(activeNetuid, channel.id)}
                       label={channel.label}
                       active={subnetSection === channel.id}
+                    />
+                  ))}
+                </nav>
+              </>
+            ) : sidebarPanel === "portfolio" ? (
+              <>
+                <div
+                  className="flex h-11 shrink-0 items-center border-b px-3 shadow-sm"
+                  style={{
+                    borderColor: dc.sidebarBorder,
+                    color: dc.textPrimary,
+                    boxShadow: "0 1px 0 rgba(0,0,0,0.2)",
+                  }}
+                >
+                  <span className="truncate text-sm font-semibold">portfolio</span>
+                </div>
+
+                <nav className="flex flex-col gap-px px-1.5 py-1.5">
+                  {PORTFOLIO_CHANNELS.map((channel) => (
+                    <SubnetNavLink
+                      key={channel.id}
+                      href={portfolioChannelHref(channel.id)}
+                      label={channel.label}
+                      active={portfolioSection === channel.id}
                     />
                   ))}
                 </nav>
@@ -316,7 +365,7 @@ export function DiscordAppShell({
           </header>
 
           <main
-            className="min-h-0 flex-1 overflow-y-auto"
+            className="min-h-0 flex-1 overflow-y-auto px-10"
             style={{ backgroundColor: dc.content }}
           >
             {children}
@@ -490,7 +539,7 @@ function UserPanel({ user }: { user: AppShellUser }) {
           <DropdownMenuContent align="start" side="top" className="w-56">
             <DropdownMenuItem asChild>
               <Link href="/portfolio">
-                <SettingsIcon className="size-4" />
+                <WalletIcon className="size-4" />
                 Portfolio
               </Link>
             </DropdownMenuItem>
@@ -503,43 +552,24 @@ function UserPanel({ user }: { user: AppShellUser }) {
         </DropdownMenu>
 
         <div className="flex shrink-0 items-center gap-0.5">
-          <IconToggle icon={MicOffIcon} label="Mute" active />
-          <IconToggle icon={HeadphonesIcon} label="Deafen" />
           <Link
             href="/portfolio"
             className="rounded p-1.5 transition-colors hover:text-[#dbdee1]"
             style={{ color: dc.textMuted }}
-            aria-label="User settings"
+            aria-label="Portfolio"
           >
-            <SettingsIcon className="size-4" />
+            <WalletIcon className="size-5" />
           </Link>
+          <button
+            type="button"
+            className="cursor-pointer rounded p-1.5 transition-colors hover:text-[#dbdee1]"
+            style={{ color: dc.textMuted }}
+            aria-label="Settings"
+          >
+            <SettingsIcon className="size-5" />
+          </button>
         </div>
       </div>
     </div>
-  )
-}
-
-function IconToggle({
-  icon: Icon,
-  label,
-  active,
-}: {
-  icon: typeof MicOffIcon
-  label: string
-  active?: boolean
-}) {
-  return (
-    <button
-      type="button"
-      aria-label={label}
-      aria-pressed={active}
-      className="cursor-pointer rounded p-1.5 transition-colors"
-      style={{
-        color: active ? "#f23f43" : dc.textMuted,
-        backgroundColor: active ? dc.hover : undefined,
-      }}
-    >
-      <Icon className="size-4" />
-    </button>
   )
 }

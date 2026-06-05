@@ -28,7 +28,7 @@ A Next.js dashboard for Bittensor — subnet screener, metagraph viewer, incenti
 
 - **Subnet screener** — sortable/paginated table of all subnets with emission, price, market cap, and 24 h change. Live TAO + BTC price charts at the top with range buttons (24 h, 7 d, 1 m, etc.) in the user's local timezone.
 - **Subnet detail page** (`/subnet/[netuid]`) — hyperparameters grid, metagraph table with search + sorting + pagination (validators and subnet owner highlighted), and incentive distribution chart with hover crosshair.
-- **Portfolio** (`/portfolio`) — public coldkey balance tracker. 30-day history chart works keylessly (taoswap.org); the live spot-balance breakdown additionally needs `TAOAPP_API_KEY` (see below). Signed-in users can save **coldkey nicknames** that appear on the incentive chart's info bar.
+- **Portfolio** (`/portfolio`) — coldkey balance tracker powered by [taoswap.org](https://taoswap.org) (daily snapshot + history chart). Signed-in users can save **coldkey nicknames** that appear on the incentive chart's info bar.
 - **Auth** — Google + GitHub OAuth via Supabase. Middleware-enforced protected routes.
 
 ---
@@ -71,14 +71,6 @@ DATABASE_URL=postgresql://postgres.YOUR_PROJECT_REF:YOUR_DB_PASSWORD@aws-0-REGIO
 # and `prisma migrate` because pgbouncer transaction mode can hang on DDL.
 DIRECT_URL=postgresql://postgres.YOUR_PROJECT_REF:YOUR_DB_PASSWORD@aws-0-REGION.pooler.supabase.com:5432/postgres
 
-# --- TAO.app API (OPTIONAL) -----------------------------------------------
-# Only needed for the live coldkey balance lookup on /portfolio. Without it,
-# the rest of the app works fine — only the "spot balance" widget on the
-# portfolio page will return 503. Subnets, metagraph, charts, history, and
-# nicknames all use keyless data sources (taoswap.org + CoinGecko).
-# TAOAPP_API_KEY=your_tao_app_api_key
-# TAOAPP_API_BASE_URL=https://api.tao.app   # rarely needed, defaults to this
-
 # --- OAuth (NOT secrets used by app code — only stored here as reference) -
 # Configure these in Supabase → Authentication → Providers. The keys below
 # are optional placeholders; the app itself doesn't read them. Useful as a
@@ -88,12 +80,6 @@ DIRECT_URL=postgresql://postgres.YOUR_PROJECT_REF:YOUR_DB_PASSWORD@aws-0-REGION.
 # Github_Client_Id=...
 # Github_Client_Secret=...
 ```
-
-### Optional: TAO.app key
-
-The `TAOAPP_API_KEY` gates exactly one feature — the **live spot-balance widget** on `/portfolio` (the card that breaks a coldkey's holdings down by subnet at the current block). The 30-day history chart on the same page uses keyless **taoswap.org** and keeps working without it.
-
-TAO.app doesn't expose a self-serve signup; if you need this widget, ask the project owner for a key. The rest of the dashboard works fully without one, so feel free to skip this and revisit later.
 
 > `.env*` is git-ignored. **Never commit secrets.** Never expose the Supabase `service_role` key to the browser — this project doesn't use it.
 
@@ -236,7 +222,7 @@ app/
   dashboard/                     # subnet screener (TAO + BTC charts + table)
   portfolio/                     # coldkey portfolio + nicknames
   subnet/[netuid]/               # subnet detail page
-  api/portfolio/balance/         # taoswap spot balance
+  api/portfolio/balance/         # taoswap daily balance snapshot
   api/portfolio/history/         # taoswap 30-day history
   api/prices/[coin]/             # CoinGecko price proxy
 
@@ -251,7 +237,6 @@ lib/
   generated/prisma/              # generated Prisma client (gitignored)
   portfolio/                     # nickname server actions + types
   taoswap/                       # taoswap.org client (no API key)
-  taoapp/                        # legacy TAO.app client (server-only)
   coingecko/                     # CoinGecko price client
   utils.ts                       # cn() helper
 
@@ -296,7 +281,6 @@ See [lib/portfolio/nicknames.ts](./lib/portfolio/nicknames.ts) for a canonical e
 | `Module not found: '@/lib/generated/prisma/client'`                              | Client never generated. Run `npx prisma generate`.                                                                                                     |
 | `Property 'accelerateUrl' is missing` TS error in `lib/prisma/client.ts`         | The `prisma-client` provider needs a driver adapter. Already wired with `@prisma/adapter-pg` — make sure `npm install` succeeded.                      |
 | Login works locally but fails on Vercel                                          | Production URL not added to Supabase **Redirect URLs**, or env vars missing on Vercel.                                                                 |
-| `/portfolio` shows `TAOAPP_API_KEY is not configured on the server` (503)        | Expected if you didn't set `TAOAPP_API_KEY`. Only the live spot-balance card depends on it — history + nicknames still work. See "Optional: TAO.app key" above. |
 
 ---
 
